@@ -91,13 +91,13 @@
                 <p class="text-xs text-gray-500 text-center mb-3">Akun Uji Coba:</p>
                 <div class="space-y-2 text-xs">
                     <div class="bg-purple-50 p-2 rounded border-l-4 border-purple-500">
-                        <strong>Admin:</strong> admin@kapasda.test / admin123
+                        <strong>Admin:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="452421282c2b052e2435243621246b31203631">[email&#160;protected]</a> / admin123
                     </div>
                     <div class="bg-blue-50 p-2 rounded border-l-4 border-blue-500">
-                        <strong>Kecamatan:</strong> kecamatan@kapasda.test / kecamatan123
+                        <strong>Kecamatan:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="94fff1f7baf7fdf6f5f8fbfaf3d4fff5e4f5e7f0f5bae0f1e7e0">[email&#160;protected]</a> / kecamatan123
                     </div>
                     <div class="bg-green-50 p-2 rounded border-l-4 border-green-500">
-                        <strong>Desa:</strong> desa@kapasda.test / desa123
+                        <strong>Desa:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e581809684cb91809691a58e849584968184cb91809691">[email&#160;protected]</a> / desa123
                     </div>
                 </div>
             </div>
@@ -115,42 +115,12 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZHdidWZsdHRqcm5odWV5bWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDY3MDIsImV4cCI6MjA4MDE4MjcwMn0.qqo9_4u8rRRDRh74Jq-PGyc-0md_fO5TgQl9Wap44kE';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Test Supabase connection and check tables
-        async function testSupabaseConnection() {
-            console.log('[SUPABASE TEST] Testing connection...');
-            try {
-                // Test basic connection
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('count')
-                    .limit(1);
-                
-                console.log('[SUPABASE TEST] Connection test result:', { data, error });
-                
-                if (error) {
-                    console.error('[SUPABASE TEST] Connection failed:', error);
-                    return false;
-                }
-                
-                console.log('[SUPABASE TEST] Connection successful');
-                return true;
-            } catch (err) {
-                console.error('[SUPABASE TEST] Connection error:', err);
-                return false;
-            }
-        }
-
         // Check if already logged in
         supabase.auth.getSession().then(({ data: { session } }) => {
-            console.log('[LOGIN INIT] Checking existing session...', { session });
             if (session) {
-                console.log('[LOGIN INIT] Session found, redirecting to index.html');
                 window.location.href = 'index.html';
             }
         });
-
-        // Test connection on page load
-        testSupabaseConnection();
 
         // Toggle password visibility
         document.getElementById('togglePassword').addEventListener('click', function() {
@@ -198,108 +168,27 @@
             loginButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
             
             try {
-                console.log('[LOGIN DEBUG] Starting authentication process...');
-                console.log('[LOGIN DEBUG] Email:', email);
-                
                 // Sign in with Supabase
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
-                console.log('[LOGIN DEBUG] Auth response:', { data, error });
-                
-                if (error) {
-                    console.error('[LOGIN DEBUG] Auth error:', error);
-                    throw error;
-                }
-                
-                console.log('[LOGIN DEBUG] User authenticated successfully:', data.user);
+                if (error) throw error;
                 
                 // Get user profile to check role
-                console.log('[LOGIN DEBUG] Querying profile for user ID:', data.user.id);
-                const { data: profileData, error: profileError } = await supabase
+                const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('id', data.user.id);
+                    .eq('user_id', data.user.id)
+                    .single();
                 
-                console.log('[LOGIN DEBUG] Profile query response:', { profileData, profileError });
-                
-                if (profileError) {
-                    console.error('[LOGIN DEBUG] Profile query error:', profileError);
-                    console.error('[LOGIN DEBUG] Error details:', {
-                        message: profileError.message,
-                        details: profileError.details,
-                        hint: profileError.hint,
-                        code: profileError.code
-                    });
-                    throw new Error(`Error mengambil data profil: ${profileError.message}`);
-                }
-                
-                console.log('[LOGIN DEBUG] Raw profile data:', profileData);
-                
-                // Check if profile exists and get first result
-                const profile = profileData && profileData.length > 0 ? profileData[0] : null;
-                
-                if (!profile) {
-                    console.error('[LOGIN DEBUG] No profile found for user:', data.user.id);
-                    console.log('[LOGIN DEBUG] Creating default profile for user...');
-                    
-                    // Create default profile based on email domain
-                    let defaultRole = 'desa';
-                    let defaultKecamatanId = null;
-                    let defaultDesaId = null;
-                    
-                    if (email.includes('admin')) {
-                        defaultRole = 'admin';
-                    } else if (email.includes('kecamatan')) {
-                        defaultRole = 'kecamatan';
-                        // You might need to set appropriate kecamatan_id based on your data
-                        defaultKecamatanId = 1; // Example ID
-                    } else if (email.includes('desa')) {
-                        defaultRole = 'desa';
-                        // You might need to set appropriate desa_id based on your data
-                        defaultDesaId = 1; // Example ID
-                    }
-                    
-                    // Create the profile
-                    const { data: newProfile, error: createError } = await supabase
-                        .from('profiles')
-                        .insert([{
-                            id: data.user.id,
-                            email: data.user.email,
-                            nama: data.user.email.split('@')[0], // Use email prefix as name
-                            role: defaultRole,
-                            kecamatan_id: defaultKecamatanId,
-                            desa_id: defaultDesaId,
-                            created_at: new Date().toISOString()
-                        }])
-                        .select()
-                        .single();
-                    
-                    if (createError) {
-                        console.error('[LOGIN DEBUG] Error creating profile:', createError);
-                        throw new Error(`Gagal membuat profil pengguna: ${createError.message}`);
-                    }
-                    
-                    console.log('[LOGIN DEBUG] Profile created successfully:', newProfile);
-                    
-                    // Use the newly created profile
-                    profile = newProfile;
-                }
-                
-                console.log('[LOGIN DEBUG] Profile found:', profile);
+                if (profileError) throw profileError;
                 
                 showAlert('Login berhasil! Mengalihkan...', 'success');
                 
-                // Debug logging
-                console.log('[LOGIN DEBUG] Login successful, redirecting to index.html');
-                console.log('[LOGIN DEBUG] User data:', data.user);
-                console.log('[LOGIN DEBUG] Profile data:', profile);
-                
                 // Redirect to main app
                 setTimeout(() => {
-                    console.log('[LOGIN DEBUG] Executing redirect to index.html...');
                     window.location.href = 'index.html';
                 }, 1000);
                 
