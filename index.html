@@ -1658,7 +1658,12 @@
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             
             document.getElementById(tabId).classList.add('active');
-            event.target.closest('.nav-tab').classList.add('active');
+            
+            // Find and activate the corresponding nav tab button
+            const tabButton = document.querySelector(`[onclick="showTab('${tabId}')"]`);
+            if (tabButton) {
+                tabButton.classList.add('active');
+            }
         }
 
         function showToast(message, type = 'success') {
