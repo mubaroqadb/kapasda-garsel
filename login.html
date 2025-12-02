@@ -91,13 +91,13 @@
                 <p class="text-xs text-gray-500 text-center mb-3">Akun Uji Coba:</p>
                 <div class="space-y-2 text-xs">
                     <div class="bg-purple-50 p-2 rounded border-l-4 border-purple-500">
-                        <strong>Admin:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="99f8fdf4f0f7d9f2f8e9f8eafdf8b7edfceaed">[email&#160;protected]</a> / admin123
+                        <strong>Admin:</strong> admin@kapasda.test / admin123
                     </div>
                     <div class="bg-blue-50 p-2 rounded border-l-4 border-blue-500">
-                        <strong>Kecamatan:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="97fcf2f4b9f4fef5f6fbf8f9f0d7fcf6e7f6e4f3f6b9e3f2e4e3">[email&#160;protected]</a> / kecamatan123
+                        <strong>Kecamatan:</strong> kecamatan@kapasda.test / kecamatan123
                     </div>
                     <div class="bg-green-50 p-2 rounded border-l-4 border-green-500">
-                        <strong>Desa:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="8febeafceea1fbeafcfbcfe4eeffeefcebeea1fbeafcfb">[email&#160;protected]</a> / desa123
+                        <strong>Desa:</strong> desa@kapasda.test / desa123
                     </div>
                 </div>
             </div>
@@ -243,7 +243,49 @@
                 
                 if (!profile) {
                     console.error('[LOGIN DEBUG] No profile found for user:', data.user.id);
-                    throw new Error('Profil pengguna tidak ditemukan. Silakan hubungi administrator.');
+                    console.log('[LOGIN DEBUG] Creating default profile for user...');
+                    
+                    // Create default profile based on email domain
+                    let defaultRole = 'desa';
+                    let defaultKecamatanId = null;
+                    let defaultDesaId = null;
+                    
+                    if (email.includes('admin')) {
+                        defaultRole = 'admin';
+                    } else if (email.includes('kecamatan')) {
+                        defaultRole = 'kecamatan';
+                        // You might need to set appropriate kecamatan_id based on your data
+                        defaultKecamatanId = 1; // Example ID
+                    } else if (email.includes('desa')) {
+                        defaultRole = 'desa';
+                        // You might need to set appropriate desa_id based on your data
+                        defaultDesaId = 1; // Example ID
+                    }
+                    
+                    // Create the profile
+                    const { data: newProfile, error: createError } = await supabase
+                        .from('profiles')
+                        .insert([{
+                            id: data.user.id,
+                            email: data.user.email,
+                            nama: data.user.email.split('@')[0], // Use email prefix as name
+                            role: defaultRole,
+                            kecamatan_id: defaultKecamatanId,
+                            desa_id: defaultDesaId,
+                            created_at: new Date().toISOString()
+                        }])
+                        .select()
+                        .single();
+                    
+                    if (createError) {
+                        console.error('[LOGIN DEBUG] Error creating profile:', createError);
+                        throw new Error(`Gagal membuat profil pengguna: ${createError.message}`);
+                    }
+                    
+                    console.log('[LOGIN DEBUG] Profile created successfully:', newProfile);
+                    
+                    // Use the newly created profile
+                    profile = newProfile;
                 }
                 
                 console.log('[LOGIN DEBUG] Profile found:', profile);
