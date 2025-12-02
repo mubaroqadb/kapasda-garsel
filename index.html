@@ -677,7 +677,10 @@
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                 hour: '2-digit', minute: '2-digit'
             };
-            document.getElementById('currentDateTime').textContent = now.toLocaleDateString('id-ID', options);
+            const dateTimeElement = document.getElementById('currentDateTime');
+            if (dateTimeElement) {
+                dateTimeElement.textContent = now.toLocaleDateString('id-ID', options);
+            }
         }
 
         // ==================== DATA PEMBANDING MANAGEMENT ====================
