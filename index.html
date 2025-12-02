@@ -330,15 +330,21 @@
                 
                 // Load user profile
                 console.log('[AUTH DEBUG] Loading user profile...');
-                const { data: profile, error: profileError } = await supabase
+                const { data: profileData, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('id', currentUser.id)
-                    .single();
+                    .eq('id', currentUser.id);
                 
                 if (profileError) {
                     console.error('[AUTH DEBUG] Profile error:', profileError);
                     throw profileError;
+                }
+                
+                // Check if profile exists and get first result
+                const profile = profileData && profileData.length > 0 ? profileData[0] : null;
+                
+                if (!profile) {
+                    throw new Error('Profil pengguna tidak ditemukan. Silakan login kembali.');
                 }
                 
                 console.log('[AUTH DEBUG] User profile loaded:', profile);

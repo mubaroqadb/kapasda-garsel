@@ -177,13 +177,24 @@
                 if (error) throw error;
                 
                 // Get user profile to check role
-                const { data: profile, error: profileError } = await supabase
+                const { data: profileData, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('id', data.user.id)
-                    .single();
+                    .eq('id', data.user.id);
                 
-                if (profileError) throw profileError;
+                if (profileError) {
+                    console.error('[LOGIN DEBUG] Profile query error:', profileError);
+                    throw profileError;
+                }
+                
+                // Check if profile exists and get first result
+                const profile = profileData && profileData.length > 0 ? profileData[0] : null;
+                
+                if (!profile) {
+                    throw new Error('Profil pengguna tidak ditemukan. Silakan hubungi administrator.');
+                }
+                
+                console.log('[LOGIN DEBUG] Profile found:', profile);
                 
                 showAlert('Login berhasil! Mengalihkan...', 'success');
                 
