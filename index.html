@@ -365,11 +365,57 @@
                 console.log('[AUTH DEBUG] Profile data length:', profileData?.length);
                 
                 // Check if profile exists and get first result
-                const profile = profileData && profileData.length > 0 ? profileData[0] : null;
+                let profile = profileData && profileData.length > 0 ? profileData[0] : null;
                 
                 if (!profile) {
                     console.error('[AUTH DEBUG] No profile found for user:', currentUser.id);
-                    throw new Error('Profil pengguna tidak ditemukan. Silakan login kembali.');
+                    console.log('[AUTH DEBUG] Attempting to create profile in index.html...');
+                    
+                    // Try to create profile if not found (same logic as login.html)
+                    try {
+                        const email = currentUser.email;
+                        let defaultRole = 'desa';
+                        let defaultKecamatanId = null;
+                        let defaultDesaId = null;
+                        
+                        if (email.includes('admin')) {
+                            defaultRole = 'admin';
+                        } else if (email.includes('kecamatan')) {
+                            defaultRole = 'kecamatan';
+                            defaultKecamatanId = 1; // Example ID
+                        } else if (email.includes('desa')) {
+                            defaultRole = 'desa';
+                            defaultDesaId = 1; // Example ID
+                        }
+                        
+                        console.log('[AUTH DEBUG] Creating profile with role:', defaultRole);
+                        
+                        const { data: newProfile, error: createError } = await supabase
+                            .from('profiles')
+                            .insert([{
+                                id: currentUser.id,
+                                email: email,
+                                nama: email.split('@')[0],
+                                role: defaultRole,
+                                kecamatan_id: defaultKecamatanId,
+                                desa_id: defaultDesaId,
+                                created_at: new Date().toISOString()
+                            }])
+                            .select()
+                            .single();
+                        
+                        if (createError) {
+                            console.error('[AUTH DEBUG] Error creating profile:', createError);
+                            throw new Error(`Gagal membuat profil: ${createError.message}`);
+                        }
+                        
+                        console.log('[AUTH DEBUG] Profile created in index.html:', newProfile);
+                        profile = newProfile;
+                        
+                    } catch (createErr) {
+                        console.error('[AUTH DEBUG] Failed to create profile in index.html:', createErr);
+                        throw new Error('Profil pengguna tidak ditemukan dan gagal dibuat. Silakan login kembali.');
+                    }
                 }
                 
                 console.log('[AUTH DEBUG] User profile loaded:', profile);
