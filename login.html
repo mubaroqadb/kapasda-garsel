@@ -187,8 +187,14 @@
                 
                 showAlert('Login berhasil! Mengalihkan...', 'success');
                 
+                // Debug logging
+                console.log('[LOGIN DEBUG] Login successful, redirecting to index.html');
+                console.log('[LOGIN DEBUG] User data:', data.user);
+                console.log('[LOGIN DEBUG] Profile data:', profile);
+                
                 // Redirect to main app
                 setTimeout(() => {
+                    console.log('[LOGIN DEBUG] Executing redirect to index.html...');
                     window.location.href = 'index.html';
                 }, 1000);
                 

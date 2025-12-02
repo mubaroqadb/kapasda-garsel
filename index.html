@@ -63,6 +63,7 @@
                 <div class="flex items-center gap-3 text-sm">
                     <span id="userInfo" class="bg-blue-600 px-3 py-1 rounded-full"></span>
                     <span id="currentKecamatan" class="bg-blue-600 px-3 py-1 rounded-full"></span>
+                    <span id="currentDateTime" class="bg-blue-600 px-3 py-1 rounded-full"></span>
                     <button onclick="logout()" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-full transition">
                         <i class="fas fa-sign-out-alt mr-1"></i> Keluar
                     </button>
@@ -307,33 +308,53 @@
         // ==================== AUTH & PROFILE ====================
         async function checkAuth() {
             try {
+                console.log('[AUTH DEBUG] Starting authentication check...');
+                
                 const { data: { session }, error } = await supabase.auth.getSession();
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('[AUTH DEBUG] Session error:', error);
+                    throw error;
+                }
+                
+                console.log('[AUTH DEBUG] Session exists:', !!session);
                 
                 if (!session) {
+                    console.log('[AUTH DEBUG] No session found, redirecting to login');
                     window.location.href = 'login.html';
                     return false;
                 }
                 
                 currentUser = session.user;
+                console.log('[AUTH DEBUG] Current user:', currentUser);
                 
                 // Load user profile
+                console.log('[AUTH DEBUG] Loading user profile...');
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', currentUser.id)
                     .single();
                 
-                if (profileError) throw profileError;
+                if (profileError) {
+                    console.error('[AUTH DEBUG] Profile error:', profileError);
+                    throw profileError;
+                }
+                
+                console.log('[AUTH DEBUG] User profile loaded:', profile);
                 
                 currentProfile = profile;
                 userRole = profile.role;
                 userKecamatanId = profile.kecamatan_id;
                 userDesaId = profile.desa_id;
                 
+                console.log('[AUTH DEBUG] User role:', userRole);
+                console.log('[AUTH DEBUG] User kecamatan ID:', userKecamatanId);
+                console.log('[AUTH DEBUG] User desa ID:', userDesaId);
+                
                 // Load kecamatan name if applicable
                 if (userKecamatanId) {
+                    console.log('[AUTH DEBUG] Loading kecamatan name...');
                     const { data: kecData, error: kecError } = await supabase
                         .from('kecamatan')
                         .select('nama')
@@ -342,21 +363,52 @@
                     
                     if (!kecError && kecData) {
                         userKecamatanName = kecData.nama;
+                        console.log('[AUTH DEBUG] Kecamatan name:', userKecamatanName);
+                    } else if (kecError) {
+                        console.error('[AUTH DEBUG] Kecamatan error:', kecError);
                     }
                 }
                 
                 // Update UI with user info
-                document.getElementById('userInfo').textContent = 
-                    `${profile.nama || profile.email} (${userRole.toUpperCase()})`;
+                const userInfoEl = document.getElementById('userInfo');
+                if (userInfoEl) {
+                    userInfoEl.textContent =
+                        `${profile.nama || profile.email} (${userRole.toUpperCase()})`;
+                    console.log('[AUTH DEBUG] User info updated in UI');
+                } else {
+                    console.error('[AUTH DEBUG] User info element not found');
+                }
                 
                 // Configure UI based on role
+                console.log('[AUTH DEBUG] Configuring UI for role:', userRole);
                 configureUIByRole();
                 
+                console.log('[AUTH DEBUG] Authentication check completed successfully');
                 return true;
             } catch (error) {
-                console.error('Auth error:', error);
-                alert('Error loading user data: ' + error.message);
-                window.location.href = 'login.html';
+                console.error('[AUTH DEBUG] Auth error:', error);
+                console.error('[AUTH DEBUG] Error details:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                
+                // Show better error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'fixed top-4 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg z-50';
+                errorDiv.innerHTML = `
+                    <h4 class="font-bold">Authentication Error</h4>
+                    <p>${error.message}</p>
+                    <button onclick="this.parentElement.remove(); window.location.href='login.html'"
+                            class="mt-2 bg-white text-red-600 px-3 py-1 rounded text-sm">
+                        Back to Login
+                    </button>
+                `;
+                document.body.appendChild(errorDiv);
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 3000);
+                
                 return false;
             }
         }
@@ -366,6 +418,17 @@
             const tabForm = document.getElementById('tabForm');
             const tabRekap = document.getElementById('tabRekap');
             const tabAdmin = document.getElementById('tabAdmin');
+            
+            // Add null check for userRole
+            if (!userRole) {
+                console.error('[UI CONFIG] User role is not defined, hiding all tabs');
+                // Hide all tabs if role is not defined
+                if (tabDashboard) tabDashboard.classList.add('hidden');
+                if (tabForm) tabForm.classList.add('hidden');
+                if (tabRekap) tabRekap.classList.add('hidden');
+                if (tabAdmin) tabAdmin.classList.add('hidden');
+                return;
+            }
             
             if (userRole === 'admin') {
                 // Admin can see all tabs
@@ -387,6 +450,13 @@
                 tabAdmin.classList.add('hidden');
                 // Show form tab by default
                 showTab('form');
+            } else {
+                // Unknown role, hide all tabs except dashboard for safety
+                console.warn('[UI CONFIG] Unknown user role:', userRole);
+                tabDashboard.classList.remove('hidden');
+                tabForm.classList.add('hidden');
+                tabRekap.classList.add('hidden');
+                tabAdmin.classList.add('hidden');
             }
         }
 
@@ -634,50 +704,121 @@
 
         // ==================== INITIALIZATION ====================
         async function init() {
-            // Check authentication first
-            const isAuthenticated = await checkAuth();
-            if (!isAuthenticated) return;
+            console.log('[INDEX DEBUG] Initialization started');
             
-            // Load data from Supabase
-            await loadDataPembanding();
-            await loadAllKecamatanData();
-            
-            populateKecamatanSelect();
-            renderFormIndicators();
-            renderAdminDataPembanding();
-            updateDashboard();
-            updateRekapTable();
-            updateDateTime();
-            setInterval(updateDateTime, 1000);
-            
-            // Load first kecamatan based on role
-            if (userRole === 'desa' && userDesaId) {
-                // For desa user, load their desa's kecamatan
-                if (userKecamatanName && KECAMATAN_LIST.includes(userKecamatanName)) {
-                    document.getElementById('selectKecamatan').value = userKecamatanName;
-                    loadKecamatanData();
+            try {
+                // Check authentication first
+                console.log('[INDEX DEBUG] Checking authentication...');
+                const isAuthenticated = await checkAuth();
+                console.log('[INDEX DEBUG] Authentication result:', isAuthenticated);
+                
+                if (!isAuthenticated) {
+                    console.log('[INDEX DEBUG] Authentication failed, stopping initialization');
+                    return;
                 }
-            } else if (userRole === 'kecamatan' && userKecamatanName) {
-                // For kecamatan user, load their kecamatan
-                document.getElementById('selectKecamatan').value = userKecamatanName;
-                loadKecamatanData();
-            } else if (KECAMATAN_LIST.length > 0) {
-                // For admin, load first kecamatan
-                document.getElementById('selectKecamatan').value = KECAMATAN_LIST[0];
-                loadKecamatanData();
+                
+                // Load data from Supabase
+                console.log('[INDEX DEBUG] Loading data pembanding...');
+                await loadDataPembanding();
+                console.log('[INDEX DEBUG] Data pembanding loaded successfully');
+                
+                console.log('[INDEX DEBUG] Loading all kecamatan data...');
+                await loadAllKecamatanData();
+                console.log('[INDEX DEBUG] Kecamatan data loaded successfully');
+                
+                console.log('[INDEX DEBUG] Populating UI components...');
+                populateKecamatanSelect();
+                renderFormIndicators();
+                renderAdminDataPembanding();
+                updateDashboard();
+                updateRekapTable();
+                updateDateTime();
+                // Only set interval if element exists
+                if (document.getElementById('currentDateTime')) {
+                    setInterval(updateDateTime, 1000);
+                }
+                
+                // Load first kecamatan based on role
+                if (userRole === 'desa' && userDesaId) {
+                    // For desa user, load their desa's kecamatan
+                    console.log('[INDEX DEBUG] Loading desa user kecamatan:', userKecamatanName);
+                    if (userKecamatanName && KECAMATAN_LIST.includes(userKecamatanName)) {
+                        const selectElement = document.getElementById('selectKecamatan');
+                        if (selectElement) {
+                            selectElement.value = userKecamatanName;
+                            loadKecamatanData();
+                        }
+                    }
+                } else if (userRole === 'kecamatan' && userKecamatanName) {
+                    // For kecamatan user, load their kecamatan
+                    console.log('[INDEX DEBUG] Loading kecamatan user data:', userKecamatanName);
+                    const selectElement = document.getElementById('selectKecamatan');
+                    if (selectElement) {
+                        selectElement.value = userKecamatanName;
+                        loadKecamatanData();
+                    }
+                } else if (KECAMATAN_LIST.length > 0) {
+                    // For admin, load first kecamatan
+                    console.log('[INDEX DEBUG] Loading admin first kecamatan:', KECAMATAN_LIST[0]);
+                    const selectElement = document.getElementById('selectKecamatan');
+                    if (selectElement) {
+                        selectElement.value = KECAMATAN_LIST[0];
+                        loadKecamatanData();
+                    }
+                }
+                
+                console.log('[INDEX DEBUG] Initialization completed successfully');
+                
+            } catch (error) {
+                console.error('[INDEX DEBUG] Initialization error:', error);
+                console.error('[INDEX DEBUG] Error stack:', error.stack);
+                
+                // Show user-friendly error
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.innerHTML = `
+                        <div class="text-center p-8">
+                            <i class="fas fa-exclamation-triangle text-5xl text-red-600 mb-4"></i>
+                            <h3 class="text-xl font-bold text-red-800 mb-2">Error Loading Application</h3>
+                            <p class="text-gray-700 mb-4">${error.message}</p>
+                            <button onclick="window.location.reload()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                                <i class="fas fa-redo mr-2"></i>Reload Page
+                            </button>
+                            <button onclick="window.location.href='login.html'" class="ml-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Back to Login
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                // Still hide loading overlay after 5 seconds as fallback
+                setTimeout(() => {
+                    const overlay = document.getElementById('loadingOverlay');
+                    if (overlay) {
+                        overlay.style.display = 'none';
+                    }
+                }, 5000);
+                
+                return;
             }
             
-            // Hide loading overlay
+            // Hide loading overlay on success
+            console.log('[INDEX DEBUG] Hiding loading overlay');
             document.getElementById('loadingOverlay').style.display = 'none';
         }
 
         function updateDateTime() {
             const now = new Date();
-            const options = { 
+            const options = {
                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                 hour: '2-digit', minute: '2-digit'
             };
-            document.getElementById('currentDateTime').textContent = now.toLocaleDateString('id-ID', options);
+            const dateTimeElement = document.getElementById('currentDateTime');
+            if (dateTimeElement) {
+                dateTimeElement.textContent = now.toLocaleDateString('id-ID', options);
+            } else {
+                console.warn('[DATE TIME] currentDateTime element not found');
+            }
         }
 
         // ==================== DATA PEMBANDING MANAGEMENT ====================
@@ -815,13 +956,20 @@
 
         // ==================== KECAMATAN DATA MANAGEMENT ====================
         async function loadAllKecamatanData() {
+            console.log('[KEC DEBUG] Loading all kecamatan data...');
             try {
                 // Get kecamatan mapping first
+                console.log('[KEC DEBUG] Getting kecamatan list...');
                 const { data: kecamatanList, error: kecError } = await supabase
                     .from('kecamatan')
                     .select('id, nama');
                 
-                if (kecError) throw kecError;
+                if (kecError) {
+                    console.error('[KEC DEBUG] Kecamatan list error:', kecError);
+                    throw kecError;
+                }
+                
+                console.log('[KEC DEBUG] Kecamatan list loaded:', kecamatanList);
                 
                 const kecamatanMap = {};
                 kecamatanList.forEach(k => {
@@ -835,18 +983,27 @@
                     .eq('status', 'final');
                 
                 if (userRole === 'kecamatan' && userKecamatanId) {
+                    console.log('[KEC DEBUG] Filtering by kecamatan ID:', userKecamatanId);
                     query = query.eq('kecamatan_id', userKecamatanId);
                 } else if (userRole === 'desa' && userDesaId) {
+                    console.log('[KEC DEBUG] Filtering by desa ID:', userDesaId);
                     query = query.eq('desa_id', userDesaId);
                 }
                 
+                console.log('[KEC DEBUG] Executing penilaian query...');
                 const { data, error } = await query;
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('[KEC DEBUG] Penilaian query error:', error);
+                    throw error;
+                }
+                
+                console.log('[KEC DEBUG] Penilaian data loaded:', data);
                 
                 // Convert to allKecamatanData format
                 allKecamatanData = {};
                 if (data) {
+                    console.log('[KEC DEBUG] Processing penilaian data...');
                     data.forEach(item => {
                         const kecamatanName = kecamatanMap[item.kecamatan_id];
                         if (kecamatanName && item.data) {
@@ -861,8 +1018,15 @@
                         }
                     });
                 }
+                
+                console.log('[KEC DEBUG] All kecamatan data processed:', allKecamatanData);
             } catch (error) {
-                console.error('Error loading kecamatan data:', error);
+                console.error('[KEC DEBUG] Error loading kecamatan data:', error);
+                console.error('[KEC DEBUG] Error details:', {
+                    message: error.message,
+                    code: error.code,
+                    details: error.details
+                });
                 allKecamatanData = {};
             }
         }
@@ -937,10 +1101,12 @@
                 };
                 
                 // Upsert to database
+                // Fix the onConflict constraint logic
+                const conflictColumn = userDesaId ? 'desa_id' : 'kecamatan_id';
                 const { error } = await supabase
                     .from('penilaian')
                     .upsert(penilaianData, {
-                        onConflict: userDesaId ? 'desa_id,status' : 'kecamatan_id,status'
+                        onConflict: `${conflictColumn},status`
                     });
                 
                 if (error) throw error;
@@ -955,6 +1121,11 @@
         // ==================== UI POPULATION ====================
         function populateKecamatanSelect() {
             const select = document.getElementById('selectKecamatan');
+            if (!select) {
+                console.error('[POPULATE SELECT] selectKecamatan element not found');
+                return;
+            }
+            
             let kecamatanOptions = KECAMATAN_LIST;
             
             // Filter based on role
@@ -964,7 +1135,7 @@
                 kecamatanOptions = [userKecamatanName];
             }
             
-            select.innerHTML = kecamatanOptions.map(k => 
+            select.innerHTML = kecamatanOptions.map(k =>
                 `<option value="${k}">${k}</option>`
             ).join('');
             
@@ -1079,8 +1250,19 @@
 
         // ==================== FORM CALCULATIONS ====================
         function loadKecamatanData() {
-            const kecamatan = document.getElementById('selectKecamatan').value;
-            document.getElementById('currentKecamatan').textContent = kecamatan;
+            const selectElement = document.getElementById('selectKecamatan');
+            if (!selectElement) {
+                console.error('[LOAD KECAMATAN] selectKecamatan element not found');
+                return;
+            }
+            
+            const kecamatan = selectElement.value;
+            const currentKecElement = document.getElementById('currentKecamatan');
+            if (currentKecElement) {
+                currentKecElement.textContent = kecamatan;
+            } else {
+                console.error('[LOAD KECAMATAN] currentKecamatan element not found');
+            }
             
             const data = allKecamatanData[kecamatan];
             
@@ -1184,7 +1366,13 @@
         }
 
         async function saveData() {
-            const kecamatan = document.getElementById('selectKecamatan').value;
+            const selectElement = document.getElementById('selectKecamatan');
+            if (!selectElement) {
+                showToast('Element selectKecamatan tidak ditemukan!', 'error');
+                return;
+            }
+            
+            const kecamatan = selectElement.value;
             const inputs = {};
             
             INDICATORS.forEach(ind => {
@@ -1651,11 +1839,34 @@
 
         // ==================== UTILITIES ====================
         function showTab(tabId) {
+            // Hide all tab contents
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             
-            document.getElementById(tabId).classList.add('active');
-            event.target.closest('.nav-tab').classList.add('active');
+            // Show selected tab content
+            const tabContent = document.getElementById(tabId);
+            if (tabContent) {
+                tabContent.classList.add('active');
+            } else {
+                console.error('[SHOW TAB] Tab content not found:', tabId);
+                return;
+            }
+            
+            // Activate corresponding nav tab
+            const navTab = document.getElementById(`tab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
+            if (navTab) {
+                navTab.classList.add('active');
+            } else {
+                console.error('[SHOW TAB] Nav tab not found for:', tabId);
+            }
+            
+            // If called from event, also handle event.target
+            if (event && event.target) {
+                const clickedNavTab = event.target.closest('.nav-tab');
+                if (clickedNavTab) {
+                    clickedNavTab.classList.add('active');
+                }
+            }
         }
 
         function showToast(message, type = 'success') {
