@@ -309,14 +309,24 @@
         async function checkAuth() {
             try {
                 console.log('[AUTH DEBUG] Starting authentication check...');
+                console.log('[AUTH DEBUG] Supabase client initialized:', !!supabase);
                 
-                const { data: { session }, error } = await supabase.auth.getSession();
+                const { data: sessionData, error } = await supabase.auth.getSession();
+                
+                console.log('[AUTH DEBUG] Session response:', { sessionData, error });
                 
                 if (error) {
                     console.error('[AUTH DEBUG] Session error:', error);
+                    console.error('[AUTH DEBUG] Session error details:', {
+                        message: error.message,
+                        details: error.details,
+                        hint: error.hint,
+                        code: error.code
+                    });
                     throw error;
                 }
                 
+                const session = sessionData?.session;
                 console.log('[AUTH DEBUG] Session exists:', !!session);
                 
                 if (!session) {
@@ -327,23 +337,38 @@
                 
                 currentUser = session.user;
                 console.log('[AUTH DEBUG] Current user:', currentUser);
+                console.log('[AUTH DEBUG] User ID:', currentUser?.id);
                 
                 // Load user profile
                 console.log('[AUTH DEBUG] Loading user profile...');
+                console.log('[AUTH DEBUG] Querying profiles table...');
+                
                 const { data: profileData, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', currentUser.id);
                 
+                console.log('[AUTH DEBUG] Profile query response:', { profileData, profileError });
+                
                 if (profileError) {
                     console.error('[AUTH DEBUG] Profile error:', profileError);
-                    throw profileError;
+                    console.error('[AUTH DEBUG] Profile error details:', {
+                        message: profileError.message,
+                        details: profileError.details,
+                        hint: profileError.hint,
+                        code: profileError.code
+                    });
+                    throw new Error(`Error mengambil data profil: ${profileError.message}`);
                 }
+                
+                console.log('[AUTH DEBUG] Raw profile data:', profileData);
+                console.log('[AUTH DEBUG] Profile data length:', profileData?.length);
                 
                 // Check if profile exists and get first result
                 const profile = profileData && profileData.length > 0 ? profileData[0] : null;
                 
                 if (!profile) {
+                    console.error('[AUTH DEBUG] No profile found for user:', currentUser.id);
                     throw new Error('Profil pengguna tidak ditemukan. Silakan login kembali.');
                 }
                 

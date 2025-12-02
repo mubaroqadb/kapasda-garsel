@@ -115,12 +115,42 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZHdidWZsdHRqcm5odWV5bWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDY3MDIsImV4cCI6MjA4MDE4MjcwMn0.qqo9_4u8rRRDRh74Jq-PGyc-0md_fO5TgQl9Wap44kE';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // Test Supabase connection and check tables
+        async function testSupabaseConnection() {
+            console.log('[SUPABASE TEST] Testing connection...');
+            try {
+                // Test basic connection
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('count')
+                    .limit(1);
+                
+                console.log('[SUPABASE TEST] Connection test result:', { data, error });
+                
+                if (error) {
+                    console.error('[SUPABASE TEST] Connection failed:', error);
+                    return false;
+                }
+                
+                console.log('[SUPABASE TEST] Connection successful');
+                return true;
+            } catch (err) {
+                console.error('[SUPABASE TEST] Connection error:', err);
+                return false;
+            }
+        }
+
         // Check if already logged in
         supabase.auth.getSession().then(({ data: { session } }) => {
+            console.log('[LOGIN INIT] Checking existing session...', { session });
             if (session) {
+                console.log('[LOGIN INIT] Session found, redirecting to index.html');
                 window.location.href = 'index.html';
             }
         });
+
+        // Test connection on page load
+        testSupabaseConnection();
 
         // Toggle password visibility
         document.getElementById('togglePassword').addEventListener('click', function() {
@@ -168,29 +198,51 @@
             loginButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
             
             try {
+                console.log('[LOGIN DEBUG] Starting authentication process...');
+                console.log('[LOGIN DEBUG] Email:', email);
+                
                 // Sign in with Supabase
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
                 
-                if (error) throw error;
+                console.log('[LOGIN DEBUG] Auth response:', { data, error });
+                
+                if (error) {
+                    console.error('[LOGIN DEBUG] Auth error:', error);
+                    throw error;
+                }
+                
+                console.log('[LOGIN DEBUG] User authenticated successfully:', data.user);
                 
                 // Get user profile to check role
+                console.log('[LOGIN DEBUG] Querying profile for user ID:', data.user.id);
                 const { data: profileData, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', data.user.id);
                 
+                console.log('[LOGIN DEBUG] Profile query response:', { profileData, profileError });
+                
                 if (profileError) {
                     console.error('[LOGIN DEBUG] Profile query error:', profileError);
-                    throw profileError;
+                    console.error('[LOGIN DEBUG] Error details:', {
+                        message: profileError.message,
+                        details: profileError.details,
+                        hint: profileError.hint,
+                        code: profileError.code
+                    });
+                    throw new Error(`Error mengambil data profil: ${profileError.message}`);
                 }
+                
+                console.log('[LOGIN DEBUG] Raw profile data:', profileData);
                 
                 // Check if profile exists and get first result
                 const profile = profileData && profileData.length > 0 ? profileData[0] : null;
                 
                 if (!profile) {
+                    console.error('[LOGIN DEBUG] No profile found for user:', data.user.id);
                     throw new Error('Profil pengguna tidak ditemukan. Silakan hubungi administrator.');
                 }
                 
