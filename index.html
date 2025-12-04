@@ -1651,7 +1651,18 @@
                 showToast(`Data ${displayName} berhasil disimpan!`);
             } catch (error) {
                 console.error('Error saving data:', error);
-                showToast(`Gagal menyimpan data: ${error.message}`, 'error');
+                
+                // Check for specific error types and provide more user-friendly messages
+                let errorMessage = error.message;
+                
+                if (error.message.includes('ON CONFLICT specification') ||
+                    error.message.includes('unique or exclusion constraint')) {
+                    errorMessage = 'Data yang anda masukkan belum lengkap';
+                } else if (error.message.includes('Gagal menyimpan ke database')) {
+                    errorMessage = 'Data yang anda masukkan belum lengkap';
+                }
+                
+                showToast(`Gagal menyimpan data: ${errorMessage}`, 'error');
             } finally {
                 // Restore button state
                 saveButton.disabled = false;
