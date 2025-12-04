@@ -336,6 +336,50 @@
         let userKecamatanName = null;
         let userDesaName = null;
         
+        // Database schema validation
+        async function verifyDatabaseSchema() {
+            try {
+                // Check if penilaian table exists and has the correct columns
+                const { data, error } = await supabase
+                    .from('penilaian')
+                    .select('*')
+                    .limit(1);
+                    
+                if (error) {
+                    console.error('Database schema error:', error);
+                    
+                    // Provide more specific error messages
+                    if (error.code === 'PGRST116') {
+                        console.error('Table "penilaian" does not exist in the database');
+                    } else if (error.code === '42703') {
+                        console.error('Column does not exist in table "penilaian"');
+                    } else if (error.code === '42501') {
+                        console.error('Permission denied to access table "penilaian"');
+                    }
+                    
+                    return false;
+                }
+                
+                // Check if required columns exist
+                if (data && data.length > 0) {
+                    const requiredColumns = ['id', 'kecamatan_id', 'desa_id', 'user_id', 'data', 'total_nilai', 'status'];
+                    const availableColumns = Object.keys(data[0]);
+                    
+                    for (const column of requiredColumns) {
+                        if (!availableColumns.includes(column)) {
+                            console.error(`Required column "${column}" is missing from table "penilaian"`);
+                            return false;
+                        }
+                    }
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error verifying database schema:', error);
+                return false;
+            }
+        }
+        
         // Global state for desa
         let allDesaList = [];
         let currentDesaList = [];
@@ -802,45 +846,67 @@
 
         // ==================== INITIALIZATION ====================
         async function init() {
-            // Check authentication first
-            const isAuthenticated = await checkAuth();
-            if (!isAuthenticated) return;
-            
-            // Load data from Supabase
-            await loadDataPembanding();
-            await loadAllKecamatanData();
-            
-            await populateKecamatanSelect();
-            renderFormIndicators();
-            renderAdminDataPembanding();
-            updateDashboard();
-            await updateRekapTable();
-            updateDesaMonitoringPanel();
-            updateDateTime();
-            setInterval(updateDateTime, 1000);
-            
-            // Load first kecamatan based on role
-            if (userRole === 'desa' && userDesaId) {
-                // For desa user, load their desa's kecamatan and desa
-                if (userKecamatanName && KECAMATAN_LIST.includes(userKecamatanName)) {
+            try {
+                // Check authentication first
+                const isAuthenticated = await checkAuth();
+                if (!isAuthenticated) return;
+                
+                // Check database connection
+                const connectionOk = await checkSupabaseConnection();
+                if (!connectionOk) {
+                    showToast('Tidak dapat terhubung ke database. Periksa koneksi internet Anda.', 'error');
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    return;
+                }
+                
+                // Verify database schema
+                const schemaValid = await verifyDatabaseSchema();
+                if (!schemaValid) {
+                    showToast('Skema database tidak valid. Silakan hubungi administrator.', 'error');
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    return;
+                }
+                
+                // Load data from Supabase
+                await loadDataPembanding();
+                await loadAllKecamatanData();
+                
+                await populateKecamatanSelect();
+                renderFormIndicators();
+                renderAdminDataPembanding();
+                updateDashboard();
+                await updateRekapTable();
+                updateDesaMonitoringPanel();
+                updateDateTime();
+                setInterval(updateDateTime, 1000);
+                
+                // Load first kecamatan based on role
+                if (userRole === 'desa' && userDesaId) {
+                    // For desa user, load their desa's kecamatan and desa
+                    if (userKecamatanName && KECAMATAN_LIST.includes(userKecamatanName)) {
+                        document.getElementById('selectKecamatan').value = userKecamatanName;
+                        document.getElementById('selectDesa').value = userDesaId;
+                        selectedDesaId = userDesaId;
+                        selectedDesaName = userDesaName;
+                        await loadFormData();
+                    }
+                } else if (userRole === 'kecamatan' && userKecamatanName) {
+                    // For kecamatan user, load their kecamatan
                     document.getElementById('selectKecamatan').value = userKecamatanName;
-                    document.getElementById('selectDesa').value = userDesaId;
-                    selectedDesaId = userDesaId;
-                    selectedDesaName = userDesaName;
+                    await loadFormData();
+                } else if (KECAMATAN_LIST.length > 0) {
+                    // For admin, load first kecamatan
+                    document.getElementById('selectKecamatan').value = KECAMATAN_LIST[0];
                     await loadFormData();
                 }
-            } else if (userRole === 'kecamatan' && userKecamatanName) {
-                // For kecamatan user, load their kecamatan
-                document.getElementById('selectKecamatan').value = userKecamatanName;
-                await loadFormData();
-            } else if (KECAMATAN_LIST.length > 0) {
-                // For admin, load first kecamatan
-                document.getElementById('selectKecamatan').value = KECAMATAN_LIST[0];
-                await loadFormData();
+                
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } catch (error) {
+                console.error('Error during initialization:', error);
+                showToast(`Gagal memulai aplikasi: ${error.message}`, 'error');
+                document.getElementById('loadingOverlay').style.display = 'none';
             }
-            
-            // Hide loading overlay
-            document.getElementById('loadingOverlay').style.display = 'none';
         }
 
         function updateDateTime() {
@@ -991,12 +1057,27 @@
         // ==================== KECAMATAN DATA MANAGEMENT ====================
         async function loadAllKecamatanData() {
             try {
+                // Check database connection first
+                const connectionOk = await checkSupabaseConnection();
+                if (!connectionOk) {
+                    throw new Error('Tidak dapat terhubung ke database. Periksa koneksi internet Anda.');
+                }
+                
                 // Get kecamatan mapping first
                 const { data: kecamatanList, error: kecError } = await supabase
                     .from('kecamatan')
                     .select('id, nama');
                 
-                if (kecError) throw kecError;
+                if (kecError) {
+                    console.error('Error loading kecamatan list:', kecError);
+                    throw new Error(`Gagal memuat data kecamatan: ${kecError.message}`);
+                }
+                
+                if (!kecamatanList || kecamatanList.length === 0) {
+                    console.warn('No kecamatan data found in database');
+                    allKecamatanData = {};
+                    return;
+                }
                 
                 const kecamatanMap = {};
                 kecamatanList.forEach(k => {
@@ -1017,7 +1098,10 @@
                 
                 const { data, error } = await query;
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('Error loading penilaian data:', error);
+                    throw new Error(`Gagal memuat data penilaian: ${error.message}`);
+                }
                 
                 // Convert to allKecamatanData format
                 allKecamatanData = {};
@@ -1025,20 +1109,43 @@
                     data.forEach(item => {
                         const kecamatanName = kecamatanMap[item.kecamatan_id];
                         if (kecamatanName && item.data) {
-                            const jsonData = item.data;
-                            allKecamatanData[kecamatanName] = {
-                                inputs: jsonData.inputs || {},
-                                calculations: jsonData.calculations || {},
-                                totalNilai: item.total_nilai || 0,
-                                status: item.total_nilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK',
-                                lastUpdate: item.updated_at
-                            };
+                            try {
+                                const jsonData = item.data;
+                                allKecamatanData[kecamatanName] = {
+                                    inputs: jsonData.inputs || {},
+                                    calculations: jsonData.calculations || {},
+                                    totalNilai: item.total_nilai || 0,
+                                    status: item.total_nilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK',
+                                    lastUpdate: item.updated_at
+                                };
+                            } catch (parseError) {
+                                console.error(`Error parsing data for ${kecamatanName}:`, parseError);
+                            }
                         }
                     });
                 }
             } catch (error) {
                 console.error('Error loading kecamatan data:', error);
                 allKecamatanData = {};
+                // Show error to user if this is not just a connection issue
+                if (!error.message.includes('koneksi')) {
+                    showToast(`Gagal memuat data: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        // Check Supabase connection
+        async function checkSupabaseConnection() {
+            try {
+                const { data, error } = await supabase
+                    .from('kecamatan')
+                    .select('id')
+                    .limit(1);
+                
+                return !error;
+            } catch (error) {
+                console.error('Connection check failed:', error);
+                return false;
             }
         }
 
@@ -1048,6 +1155,17 @@
         }
 
         async function calculateAndSave(kecamatan, inputs) {
+            console.log('Starting calculateAndSave for', kecamatan);
+            
+            // Validate inputs
+            if (!kecamatan) {
+                throw new Error('Nama kecamatan tidak boleh kosong');
+            }
+            
+            if (!inputs || Object.keys(inputs).length === 0) {
+                throw new Error('Data input tidak valid');
+            }
+            
             let totalNilai = 0;
             const calculations = {};
             
@@ -1090,17 +1208,32 @@
             
             // Save to Supabase
             try {
-                // Get kecamatan ID
+                console.log('Getting kecamatan ID for', kecamatan);
                 const { data: kecData, error: kecError } = await supabase
                     .from('kecamatan')
                     .select('id')
                     .eq('nama', kecamatan)
                     .single();
                 
-                if (kecError) throw kecError;
+                if (kecError) {
+                    console.error('Error getting kecamatan ID:', kecError);
+                    throw new Error(`Gagal mendapatkan ID kecamatan: ${kecError.message}`);
+                }
+                
+                if (!kecData) {
+                    throw new Error(`Kecamatan ${kecamatan} tidak ditemukan dalam database`);
+                }
+                
+                console.log('Kecamatan ID:', kecData.id);
                 
                 // Determine the desa_id to save
                 const saveDesaId = userRole === 'desa' ? userDesaId : (selectedDesaId || null);
+                console.log('Desa ID to save:', saveDesaId);
+                
+                // Validate user authentication
+                if (!currentUser || !currentUser.id) {
+                    throw new Error('User tidak terautentikasi');
+                }
                 
                 const penilaianData = {
                     kecamatan_id: kecData.id,
@@ -1114,20 +1247,33 @@
                     status: 'final'
                 };
                 
+                console.log('Saving data to Supabase:', penilaianData);
+                
+                // Verify database table exists before attempting to save
+                const schemaValid = await verifyDatabaseSchema();
+                if (!schemaValid) {
+                    throw new Error('Skema database tidak valid. Tabel penilaian mungkin tidak ada.');
+                }
+                
                 // Upsert to database
-                const { error } = await supabase
+                const { data, error } = await supabase
                     .from('penilaian')
                     .upsert(penilaianData, {
                         onConflict: saveDesaId ? 'desa_id,status' : 'kecamatan_id,status'
-                    });
+                    })
+                    .select();
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('Error saving to Supabase:', error);
+                    throw new Error(`Gagal menyimpan ke database: ${error.message}`);
+                }
+                
+                console.log('Data saved successfully:', data);
+                return { totalNilai, status };
             } catch (error) {
-                console.error('Error saving to Supabase:', error);
+                console.error('Error in calculateAndSave:', error);
                 throw error;
             }
-            
-            return { totalNilai, status };
         }
 
         // ==================== UI POPULATION ====================
@@ -1420,9 +1566,17 @@
         }
 
         async function saveData() {
+            const saveButton = document.querySelector('button[onclick="saveData()"]');
+            const originalText = saveButton.innerHTML;
+            
+            // Show loading state
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menyimpan...';
+            
             const kecamatan = document.getElementById('selectKecamatan').value;
             const inputs = {};
             
+            // Collect form data
             INDICATORS.forEach(ind => {
                 ind.subs.forEach(sub => {
                     const input = document.getElementById(`input_${sub.id}`);
@@ -1433,7 +1587,40 @@
             });
             
             try {
-                await calculateAndSave(kecamatan, inputs);
+                // Check if user is authenticated
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError || !session) {
+                    throw new Error('Sesi login telah expired. Silakan login kembali.');
+                }
+                
+                // Verify database schema
+                const schemaValid = await verifyDatabaseSchema();
+                if (!schemaValid) {
+                    throw new Error('Skema database tidak valid. Silakan hubungi administrator.');
+                }
+                
+                // Get kecamatan ID
+                const { data: kecData, error: kecError } = await supabase
+                    .from('kecamatan')
+                    .select('id')
+                    .eq('nama', kecamatan)
+                    .single();
+                    
+                if (kecError) {
+                    console.error('Error getting kecamatan ID:', kecError);
+                    throw new Error(`Gagal mendapatkan data kecamatan: ${kecError.message}`);
+                }
+                
+                if (!kecData) {
+                    throw new Error('Kecamatan tidak ditemukan dalam database');
+                }
+                
+                // Calculate and save
+                console.log('Starting save process for', kecamatan);
+                const result = await calculateAndSave(kecamatan, inputs);
+                console.log('Save result:', result);
+                
+                // Refresh data and UI
                 await loadAllKecamatanData();
                 updateDashboard();
                 await updateRekapTable();
@@ -1449,7 +1636,11 @@
                 showToast(`Data ${displayName} berhasil disimpan!`);
             } catch (error) {
                 console.error('Error saving data:', error);
-                showToast('Gagal menyimpan data!', 'error');
+                showToast(`Gagal menyimpan data: ${error.message}`, 'error');
+            } finally {
+                // Restore button state
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalText;
             }
         }
 
@@ -2194,9 +2385,12 @@
             
             toast.classList.remove('translate-y-20', 'opacity-0');
             
+            // Set different timeout based on type
+            const timeout = type === 'success' ? 3000 : 5000; // 3 seconds for success, 5 seconds for error
+            
             setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+            }, timeout);
         }
 
         function formatNumber(num) {
