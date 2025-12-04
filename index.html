@@ -1575,16 +1575,31 @@
             
             const kecamatan = document.getElementById('selectKecamatan').value;
             const inputs = {};
+            let hasEmptyInputs = false;
+            let emptyInputNames = [];
             
-            // Collect form data
+            // Collect form data and check for empty inputs
             INDICATORS.forEach(ind => {
                 ind.subs.forEach(sub => {
                     const input = document.getElementById(`input_${sub.id}`);
                     if (input) {
-                        inputs[sub.id] = parseFloat(input.value) || 0;
+                        const value = input.value.trim();
+                        if (value === '') {
+                            hasEmptyInputs = true;
+                            emptyInputNames.push(sub.nama);
+                        }
+                        inputs[sub.id] = parseFloat(value) || 0;
                     }
                 });
             });
+            
+            // Check if any inputs are empty
+            if (hasEmptyInputs) {
+                showToast('Harap isi lengkap data: ' + emptyInputNames.slice(0, 3).join(', ') + (emptyInputNames.length > 3 ? '...' : ''), 'error');
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalText;
+                return;
+            }
             
             try {
                 // Check if user is authenticated
