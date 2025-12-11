@@ -1,5 +1,3 @@
-// assets/js/auth.mjs
-
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { showToast } from './utils.mjs';
 
@@ -8,7 +6,6 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// State global untuk user
 export let currentUser = null;
 export let userRole = null;
 export let userKecamatanId = null;
@@ -16,73 +13,92 @@ export let userKecamatanName = null;
 
 export async function checkAuth() {
   try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       window.location.href = 'login.html';
       return false;
     }
 
     currentUser = session.user;
 
-    // Ambil profil dari tabel profiles
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('nama, role, kecamatan_id')
+      .select('*')
       .eq('user_id', currentUser.id)
       .single();
 
-    if (profileError || !profile) {
-      showToast('Profil tidak ditemukan. Hubungi admin.', true);
-      await supabase.auth.signOut();
-      window.location.href = 'login.html';
-      return false;
-    }
+    if (profileError) throw profileError;
 
     userRole = profile.role;
     userKecamatanId = profile.kecamatan_id;
 
-    // Update info di header
-    document.getElementById('userInfo').textContent = 
-      `${profile.nama || currentUser.email} (${userRole.toUpperCase()})`;
-
-    // Jika user adalah kecamatan, ambil nama kecamatannya
-    if (userRole === 'kecamatan' && userKecamatanId) {
-      const { data: kec, error } = await supabase
+    if (userKecamatanId) {
+      const { data: kecData } = await supabase
         .from('kecamatan')
         .select('nama')
         .eq('id', userKecamatanId)
         .single();
 
-      if (!error && kec) {
-        userKecamatanName = kec.nama;
-        document.getElementById('currentKecamatan').textContent = userKecamatanName;
-      }
+      userKecamatanName = kecData?.nama || '';
     }
 
-    // Sembunyikan tab Admin jika bukan admin
+    document.getElementById('userInfo').textContent = `${profile.nama || profile.email} (${userRole.toUpperCase()})`;
+    document.getElementById('currentKecamatan').textContent = userKecamatanName || '';
+
     if (userRole !== 'admin') {
-      const adminTab = document.querySelector('[data-tab="admin"]');
-      if (adminTab) adminTab.style.display = 'none';
+      document.querySelector('[data-tab="admin"]').classList.add('hidden');
+    }
+
+    // Verify database schema (persis seperti asli)
+    const schemaValid = await verifyDatabaseSchema();
+    if (!schemaValid) {
+      showToast('Skema database tidak valid. Hubungi administrator.', true);
+      return false;
     }
 
     return true;
   } catch (err) {
-    console.error('Error in checkAuth:', err);
-    showToast('Gagal memuat data pengguna', true);
-    window.location.href = 'login.html';
+    showToast('Error loading user data', true);
+    console.error(err);
+    return false;
+  }
+}
+
+async function verifyDatabaseSchema() {
+  try {
+    const { data, error } = await supabase
+      .from('penilaian')
+      .select('*')
+      .limit(1);
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      const requiredColumns = ['id', 'kecamatan_id', 'data', 'total_nilai', 'status'];
+      const available = Object.keys(data[0]);
+      for (const col of requiredColumns) {
+        if (!available.includes(col)) {
+          console.error(`Missing column ${col} in penilaian table`);
+          return false;
+        }
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Schema verification error:', err);
     return false;
   }
 }
 
 export async function logout() {
-  if (!confirm('Yakin ingin keluar dari aplikasi?')) return;
+  if (!confirm('Keluar dari aplikasi?')) return;
 
   try {
     await supabase.auth.signOut();
     window.location.href = 'login.html';
   } catch (err) {
-    showToast('Gagal logout', true);
+    showToast('Error during logout', true);
     console.error(err);
   }
 }
