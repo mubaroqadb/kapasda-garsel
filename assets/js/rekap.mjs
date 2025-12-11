@@ -12,7 +12,7 @@ export async function setupRekap() {
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <h3 class="font-semibold text-gray-700"><i class="fas fa-table mr-2"></i>Rekap Data Seluruh Kecamatan</h3>
         <div class="flex gap-2">
-          <button onclick="exportExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+          <button id="exportExcelBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
             <i class="fas fa-file-excel"></i> Export Excel
           </button>
         </div>
@@ -33,6 +33,9 @@ export async function setupRekap() {
       </div>
     </div>`;
 
+  // Add event listener for export button
+  document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
+  
   await updateRekapTable();
 }
 
@@ -91,7 +94,7 @@ async function updateRekapTable() {
 }
 
 // Export to Excel (persis seperti asli, dengan XLSX)
-window.exportExcel = async function () {
+async function exportExcel() {
   await loadAllKecamatanData();
 
   const { data: kecamatanList } = await supabase

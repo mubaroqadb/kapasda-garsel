@@ -50,7 +50,7 @@ export async function initApp() {
   }
 
   // 5. Setup navigasi tab
-  document.querySelectorAll('[data-tab="dashboard"]').classList.add('active');
+  document.querySelectorAll('[data-tab="dashboard"]').forEach(tab => tab.classList.add('active'));
   document.getElementById('dashboard').classList.add('active');
 
   document.querySelectorAll('[data-tab]').forEach(button => {

@@ -1,7 +1,7 @@
 // assets/js/admin.mjs
 
 import { supabase, userRole } from './auth.mjs';
-import { dataPembanding, loadDataPembanding } from './data.mjs';
+import { dataPembanding, loadDataPembanding, allKecamatanData } from './data.mjs';
 import { showToast } from './utils.mjs';
 import { INDIKATORS } from './indikator.mjs';
 
@@ -155,7 +155,7 @@ async function clearAllData() {
   }
 }
 
-function backupAllData() {
+async function backupAllData() {
   const data = {
     pembanding: dataPembanding,
     penilaian: Object.values(allKecamatanData)
@@ -174,7 +174,7 @@ function exportPenilaianCSV() {
   alert('Fungsi export CSV akan tersedia di tab Rekap');
 }
 
-function importAllData(e) {
+async function importAllData(e) {
   const file = e.target.files[0];
   if (!file) return;
 

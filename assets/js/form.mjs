@@ -17,16 +17,16 @@ export async function setupForm() {
           ${userRole === 'admin' ? `
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Kecamatan</label>
-            <select id="selectKecamatan" onchange="onKecamatanChange()" class="w-full md:w-56 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <select id="selectKecamatan" class="w-full md:w-56 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">-- Pilih Kecamatan --</option>
             </select>
           </div>` : ''}
         </div>
         <div class="flex gap-2">
-          <button onclick="saveData()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+          <button id="saveDataBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
             Simpan
           </button>
-          <button onclick="resetForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+          <button id="resetFormBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
             Reset
           </button>
         </div>
@@ -62,7 +62,13 @@ export async function setupForm() {
   // Jika admin → isi dropdown
   if (userRole === 'admin') {
     await populateKecamatanSelect();
+    // Add event listener for kecamatan select
+    document.getElementById('selectKecamatan').addEventListener('change', onKecamatanChange);
   }
+
+  // Add event listeners for buttons
+  document.getElementById('saveDataBtn').addEventListener('click', saveData);
+  document.getElementById('resetFormBtn').addEventListener('click', resetForm);
 
   // Load data pertama kali
   await loadFormData();
@@ -90,7 +96,7 @@ async function populateKecamatanSelect() {
 }
 
 // Dipanggil saat admin ganti kecamatan
-window.onKecamatanChange = async function () {
+async function onKecamatanChange() {
   const select = document.getElementById('selectKecamatan');
   currentKecamatanId = select.value ? Number(select.value) : null;
   await loadFormData();
@@ -179,7 +185,7 @@ function updateTotal(total) {
 }
 
 // Simpan data
-window.saveData = async function () {
+async function saveData() {
   if (!currentKecamatanId) {
     showToast('Pilih kecamatan terlebih dahulu', true);
     return;
@@ -215,7 +221,7 @@ window.saveData = async function () {
 };
 
 // Reset form
-window.resetForm = function () {
+async function resetForm() {
   if (confirm('Reset semua nilai ke kosong?')) {
     document.querySelectorAll('#formIndicators input').forEach(i => i.value = '');
     loadFormData();
