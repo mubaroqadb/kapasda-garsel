@@ -1,5 +1,5 @@
-import { supabase, userRole } from './auth.mjs';
-import { dataPembanding, loadDataPembanding, saveDataPembanding, recalculateAllKecamatan } from './data.mjs';
+import { userRole } from './auth.mjs';
+import { dataPembanding, loadDataPembanding, saveDataPembanding, recalculateAllKecamatan, supabase } from './data.mjs';
 import { showToast } from './utils.mjs';
 import { INDIKATORS } from './indikator.mjs';
 

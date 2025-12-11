@@ -1,5 +1,4 @@
-import { allKecamatanData, loadAllKecamatanData } from './data.mjs';
-import { supabase } from './supabaseClient.mjs';
+import { allKecamatanData, loadAllKecamatanData, supabase } from './data.mjs';
 import { formatDate } from './utils.mjs';
 import { BATAS_LAYAK } from './indikator.mjs';
 
