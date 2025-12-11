@@ -8,15 +8,11 @@ import { setupAdmin } from './admin.mjs';
 import { loadDataPembanding, loadAllKecamatanData } from './data.mjs';
 
 export async function initApp() {
-  // Buat client jika belum ada (fix null AuthClient)
-  if (!window.supabase) {
-    window.supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
   // 1. Cek autentikasi dulu
   const authOK = await checkAuth();
   if (!authOK) return;
 
-  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingOverlay = document.getElementById('loading');
 
   try {
     // 2. Load data global terlebih dahulu
