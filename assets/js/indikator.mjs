@@ -784,3 +784,11 @@ const INDICATORS = [
     ],
   },
 ];
+
+export const INDIKATORS = INDICATORS.map(group => ({
+  ...group,
+  subs: group.subs.map(sub => ({
+    ...sub,
+    skor: sub.skorFunc
+  }))
+}));
