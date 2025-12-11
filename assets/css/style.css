@@ -4,6 +4,7 @@
 .nav-tab.active {
   @apply bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md;
 }
+.nav-tab.hidden { display: none; }
 .tab-content { display: none; }
 .tab-content.active { display: block; animation: fadeIn 0.5s; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -12,8 +13,8 @@
   transition: all 0.3s ease;
 }
 .card-hover:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 20px 30px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
 .status-layak { @apply bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg; }
@@ -29,8 +30,40 @@
 .input-field { transition: all 0.2s; }
 .input-field:focus { transform: scale(1.02); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); }
 
+.score-badge {
+  min-width: 32px;
+  text-align: center;
+}
+
+.indicator-group {
+  border-left: 4px solid #3b82f6;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@media print {
+  .no-print { display: none !important; }
+}
+
 .loading-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(255,255,255,0.95); display: flex; align-items: center;
-  justify-content: center; z-index: 9999;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+#toast {
+  transition: all 0.3s ease;
+}
+#toast.show {
+  transform: translateY(0);
+  opacity: 1;
 }
