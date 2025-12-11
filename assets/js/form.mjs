@@ -1,11 +1,13 @@
 // assets/js/form.mjs
 
-import { supabase, userRole, userKecamatanId, userKecamatanName } from './auth.mjs';
+import { supabase, userRole, userKecamatanId, userKecamatanName, userDesaId, userDesaName } from './auth.mjs';
 import { dataPembanding, allKecamatanData, loadAllKecamatanData, saveKecamatanData } from './data.mjs';
 import { showToast } from './utils.mjs';
 import { INDIKATORS, BATAS_LAYAK } from './indikator.mjs';
 
 let currentKecamatanId = null;
+let currentDesaId = null;
+let allDesaList = [];
 
 // Inisialisasi tab Form
 export async function setupForm() {
@@ -19,6 +21,26 @@ export async function setupForm() {
             <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Kecamatan</label>
             <select id="selectKecamatan" class="w-full md:w-56 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">-- Pilih Kecamatan --</option>
+            </select>
+          </div>
+          <div id="desaSelectContainer">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Desa</label>
+            <select id="selectDesa" class="w-full md:w-56 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">-- Semua Desa --</option>
+            </select>
+          </div>` : ''}
+          ${userRole === 'kecamatan' ? `
+          <div id="desaSelectContainer">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Desa</label>
+            <select id="selectDesa" class="w-full md:w-56 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">-- Semua Desa --</option>
+            </select>
+          </div>` : ''}
+          ${userRole === 'desa' ? `
+          <div id="desaSelectContainer">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Desa</label>
+            <select id="selectDesa" class="w-full md:w-56 px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed" disabled>
+              <option value="">-- Desa Anda --</option>
             </select>
           </div>` : ''}
         </div>
@@ -51,6 +73,9 @@ export async function setupForm() {
       <div id="formIndicators" class="space-y-4"></div>
     </div>`;
 
+  // Load all desa list
+  await loadAllDesaList();
+  
   // Jika user adalah kecamatan → langsung set ke kecamatan miliknya
   if (userRole === 'kecamatan') {
     // Validate that kecamatan user has valid data
@@ -78,13 +103,63 @@ export async function setupForm() {
         <p class="text-lg font-medium text-gray-700 mb-2">Kecamatan: <strong>${displayName}</strong></p>
       `);
     }
+    
+    // Populate desa select for kecamatan
+    await populateDesaSelect(userKecamatanId);
+  }
+  
+  // Jika user adalah desa → set ke desa miliknya
+  if (userRole === 'desa') {
+    if (!userDesaId) {
+      console.error('Desa user missing userDesaId');
+      container.innerHTML = `
+        <div class="bg-white rounded-xl shadow-md p-5 mb-6">
+          <div class="text-center py-8">
+            <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
+            <p class="text-xl font-bold text-red-600 mb-2">Data Desa Tidak Ditemukan</p>
+            <p class="text-gray-700 mb-4">Akun Anda tidak terhubung dengan data desa yang valid. Silakan hubungi administrator.</p>
+          </div>
+        </div>`;
+      return;
+    }
+    
+    // Get kecamatan ID for this desa
+    const { data: desaData } = await supabase
+      .from('desa')
+      .select('kecamatan_id')
+      .eq('id', userDesaId)
+      .single();
+    
+    if (desaData) {
+      currentKecamatanId = desaData.kecamatan_id;
+      currentDesaId = userDesaId;
+    }
+    
+    // Populate desa select with only user's desa
+    await populateDesaSelect(currentKecamatanId, userDesaId);
+    
+    // Display user info
+    const statusDisplay = document.querySelector('#statusDisplay > div > div:first-child');
+    if (statusDisplay) {
+      statusDisplay.insertAdjacentHTML('afterbegin', `
+        <p class="text-lg font-medium text-gray-700 mb-2">Desa: <strong>${userDesaName || `Desa ID: ${userDesaId}`}</strong></p>
+      `);
+    }
   }
 
   // Jika admin → isi dropdown
   if (userRole === 'admin') {
     await populateKecamatanSelect();
-    // Add event listener for kecamatan select
+    // Add event listeners for selects
     document.getElementById('selectKecamatan').addEventListener('change', onKecamatanChange);
+    if (document.getElementById('selectDesa')) {
+      document.getElementById('selectDesa').addEventListener('change', onDesaChange);
+    }
+  } else if (userRole === 'kecamatan') {
+    // Add event listener for desa select
+    if (document.getElementById('selectDesa')) {
+      document.getElementById('selectDesa').addEventListener('change', onDesaChange);
+    }
   }
 
   // Add event listeners for buttons
@@ -92,6 +167,100 @@ export async function setupForm() {
   document.getElementById('resetFormBtn').addEventListener('click', resetForm);
 
   // Load data pertama kali
+  await loadFormData();
+}
+
+// Load all desa list
+async function loadAllDesaList() {
+  try {
+    let query = supabase.from('desa').select('id, nama, kecamatan_id');
+    
+    // Filter based on role
+    if (userRole === 'kecamatan' && userKecamatanId) {
+      query = query.eq('kecamatan_id', userKecamatanId);
+    } else if (userRole === 'desa' && userDesaId) {
+      query = query.eq('id', userDesaId);
+    }
+    
+    const { data, error } = await query.order('nama');
+    
+    if (error) throw error;
+    
+    allDesaList = data || [];
+    console.log('Loaded desa list:', allDesaList.length);
+  } catch (error) {
+    console.error('Error loading desa list:', error);
+    allDesaList = [];
+  }
+}
+
+// Populate desa select based on kecamatan
+async function populateDesaSelect(kecamatanId, selectedDesaId = null) {
+  const select = document.getElementById('selectDesa');
+  const container = document.getElementById('desaSelectContainer');
+  
+  if (!select || !container) return;
+  
+  // Filter desa by kecamatan
+  const desaList = kecamatanId ? allDesaList.filter(d => d.kecamatan_id === kecamatanId) : [];
+  
+  // For desa role, only show their own desa
+  if (userRole === 'desa') {
+    container.classList.remove('hidden');
+    select.disabled = true;
+    select.classList.add('bg-gray-100', 'cursor-not-allowed');
+    
+    // Clear and add only user's desa
+    select.innerHTML = '';
+    if (userDesaId) {
+      const option = document.createElement('option');
+      option.value = userDesaId;
+      option.textContent = userDesaName || `Desa ID: ${userDesaId}`;
+      select.appendChild(option);
+      currentDesaId = userDesaId;
+    }
+  } else if (userRole === 'kecamatan' || userRole === 'admin') {
+    container.classList.remove('hidden');
+    select.disabled = false;
+    select.classList.remove('bg-gray-100', 'cursor-not-allowed');
+    
+    // Clear and add options
+    select.innerHTML = '<option value="">-- Semua Desa --</option>';
+    desaList.forEach(desa => {
+      const option = document.createElement('option');
+      option.value = desa.id;
+      option.textContent = desa.nama;
+      select.appendChild(option);
+    });
+    
+    // Auto-select if specified
+    if (selectedDesaId) {
+      select.value = selectedDesaId;
+      currentDesaId = selectedDesaId;
+    } else {
+      currentDesaId = null;
+    }
+  }
+}
+
+// Handle kecamatan change
+async function onKecamatanChange() {
+  const select = document.getElementById('selectKecamatan');
+  currentKecamatanId = select.value ? Number(select.value) : null;
+  currentDesaId = null; // Reset desa selection
+  
+  // Populate desa select based on selected kecamatan
+  if (currentKecamatanId) {
+    await populateDesaSelect(currentKecamatanId);
+  }
+  
+  await loadFormData();
+}
+
+// Handle desa change
+async function onDesaChange() {
+  const select = document.getElementById('selectDesa');
+  currentDesaId = select.value ? Number(select.value) : null;
   await loadFormData();
 }
 
@@ -116,13 +285,6 @@ async function populateKecamatanSelect() {
   });
 }
 
-// Dipanggil saat admin ganti kecamatan
-async function onKecamatanChange() {
-  const select = document.getElementById('selectKecamatan');
-  currentKecamatanId = select.value ? Number(select.value) : null;
-  await loadFormData();
-};
-
 // Render semua indikator + hitung skor real-time
 async function loadFormData() {
   if (userRole === 'admin' && !currentKecamatanId) {
@@ -141,6 +303,12 @@ async function loadFormData() {
     }
   }
 
+  if (userRole === 'desa' && !currentDesaId) {
+    document.getElementById('formIndicators').innerHTML = '<p class="text-center text-red-500 py-8">Error: Data desa tidak tersedia. Silakan refresh halaman atau hubungi administrator.</p>';
+    updateTotal(0);
+    return;
+  }
+
   try {
     await loadAllKecamatanData();
   } catch (error) {
@@ -154,7 +322,14 @@ async function loadFormData() {
   let savedData = {};
   try {
     if (typeof allKecamatanData === 'object' && allKecamatanData !== null) {
-      savedData = allKecamatanData[currentKecamatanId]?.data || {};
+      // For desa users, try to get data by desa_id first, then by kecamatan_id
+      if (userRole === 'desa' && currentDesaId) {
+        savedData = allKecamatanData[`desa_${currentDesaId}`]?.data || {};
+      } else if (currentDesaId) {
+        savedData = allKecamatanData[`desa_${currentDesaId}`]?.data || {};
+      } else {
+        savedData = allKecamatanData[currentKecamatanId]?.data || {};
+      }
     } else {
       console.warn('allKecamatanData is not properly initialized, using empty object');
       savedData = {};
@@ -237,6 +412,12 @@ async function saveData() {
     showToast('Pilih kecamatan terlebih dahulu', true);
     return;
   }
+  
+  // For desa users, ensure desa is selected
+  if (userRole === 'desa' && !currentDesaId) {
+    showToast('Data desa tidak tersedia', true);
+    return;
+  }
 
   const inputs = document.querySelectorAll('#formIndicators input');
   const formData = {};
@@ -259,7 +440,9 @@ async function saveData() {
   });
 
   try {
-    await saveKecamatanData(currentKecamatanId, formData, Math.round(total));
+    // Use different key for desa data
+    const dataKey = currentDesaId ? `desa_${currentDesaId}` : currentKecamatanId;
+    await saveKecamatanData(dataKey, formData, Math.round(total));
     await loadFormData(); // refresh tampilan
     showToast('Data berhasil disimpan!');
   } catch (err) {

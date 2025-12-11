@@ -9,6 +9,8 @@ export let currentUser = null;
 export let userRole = null;
 export let userKecamatanId = null;
 export let userKecamatanName = null;
+export let userDesaId = null;
+export let userDesaName = null;
 
 export async function checkAuth() {
   try {
@@ -22,7 +24,7 @@ export async function checkAuth() {
     
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('nama, role, kecamatan_id')
+      .select('nama, role, kecamatan_id, desa_id')
       .eq('user_id', currentUser.id)
       .single();
     
@@ -38,11 +40,18 @@ export async function checkAuth() {
     
     userRole = profile.role;
     userKecamatanId = profile.kecamatan_id;
+    userDesaId = profile.desa_id;
     
     // Add validation for kecamatan users
     if (userRole === 'kecamatan' && !userKecamatanId) {
       console.error('Kecamatan user missing kecamatan_id:', currentUser.id);
       throw new Error('Pengguna kecamatan tidak memiliki ID kecamatan yang valid');
+    }
+    
+    // Add validation for desa users
+    if (userRole === 'desa' && !userDesaId) {
+      console.error('Desa user missing desa_id:', currentUser.id);
+      throw new Error('Pengguna desa tidak memiliki ID desa yang valid');
     }
     
     if (userKecamatanId) {
@@ -62,6 +71,27 @@ export async function checkAuth() {
       } catch (err) {
         console.error('Exception fetching kecamatan data:', err);
         userKecamatanName = `Kecamatan ID: ${userKecamatanId}`;
+      }
+    }
+    
+    // Load desa name if applicable
+    if (userDesaId) {
+      try {
+        const { data: desaData, error: desaError } = await supabase
+          .from('desa')
+          .select('nama')
+          .eq('id', userDesaId)
+          .single();
+        
+        if (desaError) {
+          console.error('Error fetching desa data:', desaError);
+          userDesaName = `Desa ID: ${userDesaId}`;
+        } else {
+          userDesaName = desaData?.nama || `Desa ID: ${userDesaId}`;
+        }
+      } catch (err) {
+        console.error('Exception fetching desa data:', err);
+        userDesaName = `Desa ID: ${userDesaId}`;
       }
     }
     
