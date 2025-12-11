@@ -1,5 +1,5 @@
 import { allKecamatanData, loadAllKecamatanData, dataPembanding } from './data.mjs';
-import { userRole } from './auth.mjs';
+import { userRole, supabase } from './auth.mjs';
 import { formatDate } from './utils.mjs';
 import { BATAS_LAYAK } from './indikator.mjs';
 

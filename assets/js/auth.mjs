@@ -39,7 +39,7 @@ export async function checkAuth() {
     userKecamatanName = data?.nama || 'Unknown';
   }
 
-  document.getElementById('userInfo').textContent = `${profile.nama || session.user.email} (${userRole.toUpperCase()})`;
+  document.getElementById('userInfo').textContent = `${profile.nama || session.user.email} (${userRole?.toUpperCase() || ''})`;
 
   // Sembunyikan tab yang tidak diizinkan
   if (userRole === 'kecamatan') {
