@@ -5,33 +5,34 @@ import { setupRekap } from './rekap.mjs';
 import { setupAdmin } from './admin.mjs';
 
 export async function initApp() {
-  const authOk = await checkAuth();
-  if (!authOk) return;
+  const ok = await checkAuth();
+  if (!ok) return;
 
-  // Setup semua modul
-  await loadDashboard();
-  await setupForm();
-  await setupRekap();
-  await setupAdmin();
+  const loading = document.getElementById('loading');
 
-  // Tab navigation
-  document.querySelectorAll('[data-tab]').forEach(btn => {
-    btn.addEventListener('click', () => {
+  try {
+    await Promise.all([
+      loadDashboard(),
+      setupForm(),
+      setupRekap(),
+      setupAdmin()
+    ]);
+
+    loading.style.transition = 'opacity 0.8s';
+    loading.style.opacity = '0';
+    setTimeout(() => loading.remove(), 900);
+  } catch (e) {
+    loading.innerHTML = `<div class="text-center text-red-600 text-xl">Gagal: ${e.message}<br><button onclick="location.reload()" class="mt-4 px-6 py-3 bg-blue-600 text-white rounded-xl">Reload</button></div>`;
+  }
+
+  document.querySelectorAll('[data-tab]').forEach(b => {
+    b.onclick = () => {
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      document.getElementById(btn.dataset.tab).classList.add('active');
-      btn.classList.add('active');
-    });
+      document.getElementById(b.dataset.tab).classList.add('active');
+      b.classList.add('active');
+    };
   });
 
-  document.getElementById('btnLogout').addEventListener('click', logout);
-
-  // Sembunyikan loading setelah semua selesai
-  setTimeout(() => {
-    const loadingEl = document.getElementById('loading');
-    if (loadingEl) {
-      loadingEl.style.opacity = '0';
-      setTimeout(() => loadingEl.remove(), 300);
-    }
-  }, 500);
+  document.getElementById('btnLogout').onclick = logout;
 }

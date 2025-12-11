@@ -3,14 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KAPASDA – Penilaian Kapasitas Kecamatan</title>
-
-  <!-- Tailwind dari CDN (tanpa warning) -->
+  <title>KAPASDA - Penilaian Kapasitas Kecamatan Garut Selatan</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { corePlugins: { preflight: false } }
-  </script>
-
+  <script>tailwind.config = { corePlugins: { preflight: false } }</script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -21,35 +16,35 @@
   <div id="loading" class="fixed inset-0 bg-white/95 flex items-center justify-center z-50">
     <div class="text-center">
       <i class="fas fa-spinner fa-spin text-6xl text-blue-600 mb-4"></i>
-      <p class="text-xl font-semibold text-gray-700">Memuat KAPASDA...</p>
+      <p class="text-2xl font-bold text-gray-800">Memuat KAPASDA...</p>
     </div>
   </div>
 
   <header class="bg-gradient-to-r from-blue-800 to-indigo-900 text-white shadow-2xl">
-    <div class="container mx-auto px-6 py-5 flex justify-between items-center">
-      <div class="flex items-center gap-5">
+    <div class="container mx-auto px-6 py-6 flex justify-between items-center">
+      <div class="flex items-center gap-6">
         <i class="fas fa-chart-line text-5xl"></i>
         <div>
-          <h1 class="text-3xl font-bold">KAPASDA</h1>
+          <h1 class="text-4xl font-bold">KAPASDA</h1>
           <p class="text-blue-200 text-lg">Penilaian Kapasitas Kecamatan Calon DOB Garut Selatan</p>
         </div>
       </div>
-      <div class="flex items-center gap-5">
-        <span id="userInfo" class="bg-white/20 px-5 py-2 rounded-full font-medium"></span>
-        <button id="btnLogout" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-full flex items-center gap-3 transition">
+      <div class="flex items-center gap-6">
+        <span id="userInfo" class="bg-white/20 px-6 py-3 rounded-full font-medium"></span>
+        <button id="btnLogout" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl flex items-center gap-3">
           <i class="fas fa-sign-out-alt"></i> Keluar
         </button>
       </div>
     </div>
   </header>
 
-  <nav class="bg-white shadow-lg sticky top-0 z-40">
+  <nav class="bg-white shadow-xl sticky top-0 z-40">
     <div class="container mx-auto px-6">
-      <div class="flex overflow-x-auto py-3 gap-1">
-        <button data-tab="dashboard" class="nav-tab active"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard</button>
-        <button data-tab="form"      class="nav-tab"><i class="fas fa-edit mr-2"></i>Input Data</button>
-        <button data-tab="rekap"     class="nav-tab"><i class="fas fa-table mr-2"></i>Rekap</button>
-        <button data-tab="admin"     class="nav-tab"><i class="fas fa-cog mr-2"></i>Admin</button>
+      <div class="flex overflow-x-auto py-4 gap-2">
+        <button data-tab="dashboard" class="nav-tab active">Dashboard</button>
+        <button data-tab="form"      class="nav-tab">Input Data</button>
+        <button data-tab="rekap"     class="nav-tab">Rekap</button>
+        <button data-tab="admin"     class="nav-tab">Admin</button>
       </div>
     </div>
   </nav>
@@ -61,13 +56,13 @@
     <div id="admin"     class="tab-content"></div>
   </main>
 
-  <div id="toast" class="fixed bottom-6 right-6 max-w-sm bg-green-600 text-white px-8 py-4 rounded-xl shadow-2xl transform translate-y-32 opacity-0 transition-all duration-500 z-50 text-lg font-medium">
+  <div id="toast" class="fixed bottom-6 right-6 max-w-sm bg-green-600 text-white px-8 py-4 rounded-xl shadow-2xl transform translate-y-32 opacity-0 transition-all duration-500 z-50 text-lg">
     <span id="toastMessage"></span>
   </div>
 
   <script type="module">
     import { initApp } from './assets/js/main.mjs';
-    initApp();
+    await initApp();
   </script>
 </body>
 </html>
