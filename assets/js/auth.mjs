@@ -2,8 +2,11 @@
 
 import { showToast } from './utils.mjs';
 
-// Gunakan window.supabase dari CDN (tidak perlu createClient lagi)
-export const supabase = window.supabase;
+// Gunakan window.supabase dari CDN
+export const supabase = window.supabase.createClient(
+  'https://vedwbuflttjrnhueymer.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZHdidWZsdHRqcm5odWV5bWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDY3MDIsImV4cCI6MjA4MDE4MjcwMn0.qqo9_4u8rRRDRh74Jq-PGyc-0md_fO5TgQl9Wap44kE'
+);
 
 // State global
 export let currentUser = null;
