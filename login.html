@@ -36,7 +36,31 @@
       const password = document.getElementById('password').value;
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        alert('Login gagal: ' + error.message);
+        // Tampilkan error yang lebih jelas
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4';
+        errorDiv.innerHTML = `
+          <div class="font-bold">Login gagal!</div>
+          <div class="text-sm">${error.message}</div>
+          <div class="text-xs mt-2">Silakan periksa kembali email dan password Anda.</div>
+        `;
+        
+        // Ganti alert dengan error yang lebih baik
+        const alertContainer = document.createElement('div');
+        alertContainer.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        alertContainer.innerHTML = `
+          <div class="bg-white rounded-lg p-6 max-w-md mx-4">
+            <div class="text-center">
+              <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+              ${errorDiv.outerHTML}
+              <button onclick="this.parentElement.parentElement.remove()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+                Tutup
+              </button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(alertContainer);
       } else {
         location.href = 'index.html';
       }
