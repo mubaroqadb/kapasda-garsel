@@ -1,7 +1,7 @@
 // assets/js/form.mjs
 
 import { supabase, userRole, userKecamatanId, userKecamatanName } from './auth.mjs';
-import { dataPembanding, loadAllKecamatanData, saveKecamatanData } from './data.mjs';
+import { dataPembanding, allKecamatanData, loadAllKecamatanData, saveKecamatanData } from './data.mjs';
 import { showToast } from './utils.mjs';
 import { INDIKATORS, BATAS_LAYAK } from './indikator.mjs';
 
