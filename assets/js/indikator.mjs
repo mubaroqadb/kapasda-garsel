@@ -60,7 +60,7 @@ const INDICATORS = [
     ]
   },
   {
-    no: 6, nama:nama 'Tindakan Kriminal Umum',
+    no: 6, nama: 'Tindakan Kriminal Umum',
     subs: [
       { id: '6.1', nama: 'Rasio kriminal per 10.000 penduduk CDP vs Pulau Jawa', 
         pembanding: 5.2, bobot: 2, type: 'ratio',
