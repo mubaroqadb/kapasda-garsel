@@ -42,7 +42,6 @@ export async function checkAuth() {
     }
     
     document.getElementById('userInfo').textContent = `${profile.nama || currentUser.email} (${userRole.toUpperCase()})`;
-    document.getElementById('currentKecamatan').textContent = userKecamatanName || '';
     
     // Sembunyikan tab admin jika bukan admin
     if (userRole !== 'admin') {

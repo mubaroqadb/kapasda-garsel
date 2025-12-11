@@ -69,6 +69,3 @@ export async function initApp() {
   // 6. Tombol logout
   document.getElementById('btnLogout')?.addEventListener('click', logout);
 }
-
-// Jalankan aplikasi
-initApp();
