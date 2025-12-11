@@ -4,7 +4,7 @@ import { showToast } from './utils.mjs';
 import { INDIKATORS } from './indikator.mjs';
 
 export async function setupAdmin() {
-  if (userRole !== 'admin') return;
+  if (userRole !== 'admin') {
     document.getElementById('admin').innerHTML = '<p class="text-center text-red-600 text-xl">Hanya admin yang boleh mengakses halaman ini.</p>';
     return;
   }
@@ -40,14 +40,18 @@ function renderPembandingTable() {
 
 window.savePembanding = async () => {
   const updates = [];
-  INDIKATORS.forEach(g => g.subs.forEach(s => {
-    const inp = document.getElementById(`pemb_${s.id}`);
-    updates.push({
-      subindikator_kode: s.id,
-      subindikator_nama: s.nama,
-      nilai_max: parseFloat(inp.value) || s.pembanding
+  INDIKATORS.forEach(g => {
+    g.subs.forEach(s => {
+      const inp = document.getElementById(`pemb_${s.id}`);
+      if (inp) {
+        updates.push({
+          subindikator_kode: s.id,
+          subindikator_nama: s.nama,
+          nilai_max: parseFloat(inp.value) || s.pembanding
+        });
+      }
     });
-  }));
+  });
 
   const { error } = await supabase.from('data_pembanding').upsert(updates, { onConflict: 'subindikator_kode' });
   if (error) {

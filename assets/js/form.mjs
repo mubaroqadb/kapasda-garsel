@@ -22,7 +22,6 @@ export async function setupForm() {
 }
 
 async function renderKecamatanSelect() {
-  {
   const { data } = await supabase.from('kecamatan').select('id, nama').order('nama');
   const select = document.getElementById('selectKecamatan');
   if (!select) return;

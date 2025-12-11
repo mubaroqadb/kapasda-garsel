@@ -1,5 +1,5 @@
 import { allKecamatanData, loadAllKecamatanData } from './data.mjs';
-import { supabase } from './auth.mjs';
+import { supabase } from './supabaseClient.mjs';
 import { formatDate } from './utils.mjs';
 import { BATAS_LAYAK } from './indikator.mjs';
 
@@ -41,7 +41,8 @@ window.exportExcel = async () => {
   await loadAllKecamatanData();
   const data = Object.entries(allKecamatanData).map(([id, val]) => ({
     Kecamatan: 'loading...',
-    Skor: ${val.total_nilai}, Status: ${val.total_nilai >= BATAS_LAYAK ? 'LAYAK' : 'BELUM LAYAK'}
+    Skor: val.total_nilai,
+    Status: val.total_nilai >= BATAS_LAYAK ? 'LAYAK' : 'BELUM LAYAK'
   }));
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.mjson_to_sheet(data);
