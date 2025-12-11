@@ -9,14 +9,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    // Initialize Supabase client globally before importing modules
-    const SUPABASE_URL = 'https://vedwbuflttjrnhueymer.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZHdidWZsdHRqcm5odWV5bWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDY3MDIsImV4cCI6MjA4MDE4MjcwMn0.qqo9_4u8rRRDRh74Jq-PGyc-0md_fO5TgQl9Wap44kE';
-    
-    // Create global Supabase client
-    window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  </script>
+  <!-- FIXED: Use proper initialization script -->
+  <script src="./assets/js/supabase-init.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="./assets/css/style.css">
 </head>
@@ -52,7 +46,7 @@
           <span id="userInfo"></span>
         </div>
         <button id="btnLogout" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-xl flex items-center gap-3 transition-all transform hover:scale-105 shadow-lg">
-          <i class="fas fa-sign-out-alt"></i> 
+          <i class="fas fa-sign-out-alt"></i>
           <span class="hidden sm:inline">Keluar</span>
         </button>
       </div>
@@ -93,7 +87,7 @@
         <span id="currentTime"></span>
       </div>
     </div>
-    
+
     <div id="dashboard" class="tab-content active"></div>
     <div id="form"      class="tab-content"></div>
     <div id="rekap"     class="tab-content"></div>
@@ -117,7 +111,7 @@
   <script type="module">
     import { initApp } from './assets/js/main.mjs';
     await initApp();
-    
+
     // Update current time
     function updateTime() {
       const now = new Date();
@@ -130,7 +124,7 @@
         minute: '2-digit'
       });
     }
-    
+
     updateTime();
     setInterval(updateTime, 60000); // Update every minute
   </script>

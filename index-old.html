@@ -1,0 +1,3966 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KAPASDA - Penilaian Kapasitas Daerah CDP Garut Selatan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-tab.active { background-color: #2563eb; color: white; }
+        .input-field { transition: all 0.2s; }
+        .input-field:focus { transform: scale(1.02); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); }
+        .status-layak { background: linear-gradient(135deg, #10b981, #059669); }
+        .status-tidak-layak { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .score-badge { min-width: 32px; text-align: center; }
+        .indicator-group { border-left: 4px solid #3b82f6; }
+        @media print { .no-print { display: none !important; } }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .nav-tab.hidden { display: none; }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="text-center">
+            <i class="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
+            <p class="text-gray-700 font-medium">Memuat aplikasi...</p>
+        </div>
+    </div>
+
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-700 to-blue-900 text-white shadow-lg no-print">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center gap-3 mb-3 md:mb-0">
+                    <i class="fas fa-chart-line text-3xl"></i>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold">KAPASDA</h1>
+                        <p class="text-blue-200 text-sm">Penilaian Kapasitas Daerah CDP Kabupaten Garut Selatan</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 text-sm">
+                    <span id="userInfo" class="bg-blue-600 px-3 py-1 rounded-full"></span>
+                    <span id="currentKecamatan" class="bg-blue-600 px-3 py-1 rounded-full"></span>
+                    <button onclick="logout()" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-full transition">
+                        <i class="fas fa-sign-out-alt mr-1"></i> Keluar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md sticky top-0 z-50 no-print">
+        <div class="container mx-auto px-4">
+            <div class="flex overflow-x-auto">
+                <button id="tabDashboard" onclick="showTab('dashboard')" class="nav-tab active flex-shrink-0 px-4 py-3 font-medium text-gray-600 hover:bg-blue-50 transition flex items-center gap-2">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </button>
+                <button id="tabForm" onclick="showTab('form')" class="nav-tab flex-shrink-0 px-4 py-3 font-medium text-gray-600 hover:bg-blue-50 transition flex items-center gap-2">
+                    <i class="fas fa-edit"></i> Form Input
+                </button>
+                <button id="tabRekap" onclick="showTab('rekap')" class="nav-tab flex-shrink-0 px-4 py-3 font-medium text-gray-600 hover:bg-blue-50 transition flex items-center gap-2">
+                    <i class="fas fa-table"></i> Rekap Data
+                </button>
+                <button id="tabAdmin" onclick="showTab('admin')" class="nav-tab flex-shrink-0 px-4 py-3 font-medium text-gray-600 hover:bg-blue-50 transition flex items-center gap-2">
+                    <i class="fas fa-cog"></i> Admin
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <!-- Stats Cards -->
+                <div class="bg-white rounded-xl shadow-md p-5 card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Total Kecamatan</p>
+                            <p id="statTotalKec" class="text-3xl font-bold text-blue-600">15</p>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-full">
+                            <i class="fas fa-map-marker-alt text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-5 card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Sudah Input</p>
+                            <p id="statSudahInput" class="text-3xl font-bold text-green-600">0</p>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-full">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-5 card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">LAYAK</p>
+                            <p id="statLayak" class="text-3xl font-bold text-emerald-600">0</p>
+                        </div>
+                        <div class="bg-emerald-100 p-3 rounded-full">
+                            <i class="fas fa-thumbs-up text-emerald-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-5 card-hover">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">TIDAK LAYAK</p>
+                            <p id="statTidakLayak" class="text-3xl font-bold text-red-600">0</p>
+                        </div>
+                        <div class="bg-red-100 p-3 rounded-full">
+                            <i class="fas fa-thumbs-down text-red-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-md p-5">
+                    <h3 class="font-semibold text-gray-700 mb-4"><i class="fas fa-chart-bar mr-2"></i>Perbandingan Nilai per Kecamatan</h3>
+                    <canvas id="chartKecamatan"></canvas>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-5">
+                    <h3 class="font-semibold text-gray-700 mb-4"><i class="fas fa-chart-pie mr-2"></i>Status Kelayakan</h3>
+                    <canvas id="chartKelayakan"></canvas>
+                </div>
+            </div>
+
+            <!-- Kecamatan Cards -->
+            <div id="kecamatanCardsContainer" class="bg-white rounded-xl shadow-md p-5">
+                <h3 class="font-semibold text-gray-700 mb-4"><i class="fas fa-list mr-2"></i>Status per Kecamatan</h3>
+                <div id="kecamatanCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"></div>
+            </div>
+            
+            <!-- Desa Monitoring Panel (for Kecamatan role) -->
+            <div id="desaMonitoringPanel" class="bg-white rounded-xl shadow-md p-5 mt-6 hidden">
+                <h3 class="font-semibold text-gray-700 mb-4">
+                    <i class="fas fa-village mr-2"></i>Status Pengisian per Desa - <span id="monitoringKecamatanName"></span>
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700">No</th>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700">Nama Desa</th>
+                                <th class="px-4 py-3 text-center font-semibold text-gray-700">Status Pengisian</th>
+                                <th class="px-4 py-3 text-center font-semibold text-gray-700">Total Nilai</th>
+                                <th class="px-4 py-3 text-center font-semibold text-gray-700">Kelayakan</th>
+                                <th class="px-4 py-3 text-center font-semibold text-gray-700">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="desaMonitoringTableBody" class="divide-y divide-gray-200">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Input Tab -->
+        <div id="form" class="tab-content fade-in">
+            <div class="bg-white rounded-xl shadow-md p-5 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <div class="flex flex-wrap gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Kecamatan</label>
+                            <select id="selectKecamatan" onchange="onKecamatanChange()" class="w-full md:w-56 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </select>
+                        </div>
+                        <div id="desaSelectContainer">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Desa</label>
+                            <select id="selectDesa" onchange="onDesaChange()" class="w-full md:w-56 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="saveData()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                            <i class="fas fa-save"></i> Simpan
+                        </button>
+                        <button onclick="resetForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status Display -->
+                <div id="statusDisplay" class="mb-6 p-4 rounded-lg bg-gray-100">
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div class="text-center md:text-left">
+                            <p class="text-gray-600 text-sm">Total Nilai</p>
+                            <p id="totalNilai" class="text-4xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-600 text-sm">Total Bobot</p>
+                            <p id="totalBobot" class="text-2xl font-semibold text-gray-700">100</p>
+                        </div>
+                        <div id="statusKelayakan" class="px-6 py-3 rounded-lg text-white font-bold text-lg status-tidak-layak">
+                            TIDAK LAYAK
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Indicators -->
+                <div id="formIndicators" class="space-y-4">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Rekap Tab -->
+        <div id="rekap" class="tab-content fade-in">
+            <div class="bg-white rounded-xl shadow-md p-5 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <h3 id="rekapTitle" class="font-semibold text-gray-700"><i class="fas fa-table mr-2"></i>Rekap Data Seluruh Kecamatan</h3>
+                    <div class="flex gap-2">
+                        <button onclick="exportExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <label id="importExcelBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 cursor-pointer">
+                            <i class="fas fa-file-import"></i> Import Excel
+                            <input type="file" accept=".xlsx,.xls" onchange="importExcel(event)" class="hidden">
+                        </label>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="rekapTable" class="min-w-full divide-y divide-gray-200">
+                        <thead id="rekapTableHead" class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                <th id="rekapColHeader" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kecamatan</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Nilai</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Terakhir Update</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider no-print">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rekapTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Tab -->
+        <div id="admin" class="tab-content fade-in">
+            <div class="bg-white rounded-xl shadow-md p-5 mb-6">
+                <h3 class="font-semibold text-gray-700 mb-4"><i class="fas fa-database mr-2"></i>Edit Data Pembanding</h3>
+                <p class="text-gray-500 text-sm mb-4">Data pembanding digunakan sebagai acuan perhitungan rasio dan skor.</p>
+                
+                <div id="adminDataPembanding" class="space-y-4">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+
+                <div class="mt-6 flex gap-2">
+                    <button onclick="saveDataPembanding()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                        <i class="fas fa-save"></i> Simpan Data Pembanding
+                    </button>
+                    <button onclick="resetDataPembanding()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                        <i class="fas fa-undo"></i> Reset ke Default
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-5">
+                <h3 class="font-semibold text-gray-700 mb-4"><i class="fas fa-trash-alt mr-2"></i>Kelola Data</h3>
+                <div class="flex gap-2">
+                    <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                        <i class="fas fa-trash"></i> Hapus Semua Data Kecamatan
+                    </button>
+                    <button onclick="exportAllData()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                        <i class="fas fa-download"></i> Backup Semua Data
+                    </button>
+                    <button onclick="exportPenilaianCSV()" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                        <i class="fas fa-file-csv"></i> Export CSV Penilaian
+                    </button>
+                    <label class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 cursor-pointer">
+                        <i class="fas fa-upload"></i> Restore Data
+                        <input type="file" accept=".json" onchange="importAllData(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-400 py-4 mt-8 no-print">
+        <div class="container mx-auto px-4 text-center text-sm">
+            <p>KAPASDA - Sistem Penilaian Kapasitas Daerah CDP Kabupaten Garut Selatan</p>
+            <p class="mt-1">© 2024 - Dikembangkan untuk Pemerintah Kabupaten Garut</p>
+        </div>
+    </footer>
+
+    <script>
+        // ==================== SUPABASE CONFIGURATION ====================
+        const SUPABASE_URL = 'https://vedwbuflttjrnhueymer.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZHdidWZsdHRqcm5odWV5bWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDY3MDIsImV4cCI6MjA4MDE4MjcwMn0.qqo9_4u8rRRDRh74Jq-PGyc-0md_fO5TgQl9Wap44kE';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Global state for auth
+        let currentUser = null;
+        let currentProfile = null;
+        let userRole = null;
+        let userKecamatanId = null;
+        let userDesaId = null;
+        let userKecamatanName = null;
+        let userDesaName = null;
+        
+        // Database schema validation
+        async function verifyDatabaseSchema() {
+            try {
+                // Check if penilaian table exists and has the correct columns
+                const { data, error } = await supabase
+                    .from('penilaian')
+                    .select('*')
+                    .limit(1);
+                    
+                if (error) {
+                    console.error('Database schema error:', error);
+                    
+                    // Provide more specific error messages
+                    if (error.code === 'PGRST116') {
+                        console.error('Table "penilaian" does not exist in the database');
+                    } else if (error.code === '42703') {
+                        console.error('Column does not exist in table "penilaian"');
+                    } else if (error.code === '42501') {
+                        console.error('Permission denied to access table "penilaian"');
+                    }
+                    
+                    return false;
+                }
+                
+                // Check if required columns exist
+                if (data && data.length > 0) {
+                    const requiredColumns = ['id', 'kecamatan_id', 'desa_id', 'user_id', 'data', 'total_nilai', 'status'];
+                    const availableColumns = Object.keys(data[0]);
+                    
+                    for (const column of requiredColumns) {
+                        if (!availableColumns.includes(column)) {
+                            console.error(`Required column "${column}" is missing from table "penilaian"`);
+                            return false;
+                        }
+                    }
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error verifying database schema:', error);
+                return false;
+            }
+        }
+        
+        // Global state for desa
+        let allDesaList = [];
+        let currentDesaList = [];
+        let selectedDesaId = null;
+        let selectedDesaName = null;
+
+        // ==================== AUTH & PROFILE ====================
+        async function checkAuth() {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) throw error;
+                
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                
+                currentUser = session.user;
+                
+                // Load user profile
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .single();
+                
+                if (profileError) throw profileError;
+                
+                currentProfile = profile;
+                userRole = profile.role;
+                userKecamatanId = profile.kecamatan_id;
+                userDesaId = profile.desa_id;
+                
+                // Load kecamatan name if applicable
+                if (userKecamatanId) {
+                    const { data: kecData, error: kecError } = await supabase
+                        .from('kecamatan')
+                        .select('nama')
+                        .eq('id', userKecamatanId)
+                        .single();
+                    
+                    if (!kecError && kecData) {
+                        userKecamatanName = kecData.nama;
+                    }
+                }
+                
+                // Load desa name if applicable
+                if (userDesaId) {
+                    const { data: desaData, error: desaError } = await supabase
+                        .from('desa')
+                        .select('nama')
+                        .eq('id', userDesaId)
+                        .single();
+                    
+                    if (!desaError && desaData) {
+                        userDesaName = desaData.nama;
+                    }
+                }
+                
+                // Load all desa list
+                await loadAllDesaList();
+                
+                // Update UI with user info
+                document.getElementById('userInfo').textContent = 
+                    `${profile.nama || profile.email} (${userRole.toUpperCase()})`;
+                
+                // Configure UI based on role
+                configureUIByRole();
+                
+                return true;
+            } catch (error) {
+                console.error('Auth error:', error);
+                alert('Error loading user data: ' + error.message);
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+
+        function configureUIByRole() {
+            const tabDashboard = document.getElementById('tabDashboard');
+            const tabForm = document.getElementById('tabForm');
+            const tabRekap = document.getElementById('tabRekap');
+            const tabAdmin = document.getElementById('tabAdmin');
+            
+            if (userRole === 'admin') {
+                // Admin can see all tabs
+                tabDashboard.classList.remove('hidden');
+                tabForm.classList.remove('hidden');
+                tabRekap.classList.remove('hidden');
+                tabAdmin.classList.remove('hidden');
+            } else if (userRole === 'kecamatan') {
+                // Kecamatan can see dashboard, form, rekap (filtered)
+                tabDashboard.classList.remove('hidden');
+                tabForm.classList.remove('hidden');
+                tabRekap.classList.remove('hidden');
+                tabAdmin.classList.add('hidden');
+            } else if (userRole === 'desa') {
+                // Desa can only see form (for their desa)
+                tabDashboard.classList.add('hidden');
+                tabForm.classList.remove('hidden');
+                tabRekap.classList.add('hidden');
+                tabAdmin.classList.add('hidden');
+                // Show form tab by default
+                showTab('form');
+            }
+        }
+
+        async function logout() {
+            if (!confirm('Keluar dari aplikasi?')) return;
+            
+            try {
+                await supabase.auth.signOut();
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Error during logout: ' + error.message);
+            }
+        }
+
+        // ==================== DESA MANAGEMENT ====================
+        async function loadAllDesaList() {
+            try {
+                let query = supabase.from('desa').select('id, nama, kecamatan_id');
+                
+                // Filter based on role
+                if (userRole === 'kecamatan' && userKecamatanId) {
+                    query = query.eq('kecamatan_id', userKecamatanId);
+                } else if (userRole === 'desa' && userDesaId) {
+                    query = query.eq('id', userDesaId);
+                }
+                
+                const { data, error } = await query.order('nama');
+                
+                if (error) throw error;
+                
+                allDesaList = data || [];
+                console.log('Loaded desa list:', allDesaList.length);
+            } catch (error) {
+                console.error('Error loading desa list:', error);
+                allDesaList = [];
+            }
+        }
+        
+        function getDesaListByKecamatan(kecamatanId) {
+            return allDesaList.filter(d => d.kecamatan_id === kecamatanId);
+        }
+        
+        async function populateDesaSelect(kecamatanId) {
+            const select = document.getElementById('selectDesa');
+            const container = document.getElementById('desaSelectContainer');
+            
+            // Get kecamatan ID if we have kecamatan name
+            let kecId = kecamatanId;
+            if (!kecId && userKecamatanId) {
+                kecId = userKecamatanId;
+            }
+            
+            // If no kecamatan ID, try to get from selected kecamatan name
+            if (!kecId) {
+                const kecamatanName = document.getElementById('selectKecamatan').value;
+                const { data } = await supabase
+                    .from('kecamatan')
+                    .select('id')
+                    .eq('nama', kecamatanName)
+                    .single();
+                if (data) kecId = data.id;
+            }
+            
+            // Filter desa by kecamatan
+            currentDesaList = kecId ? getDesaListByKecamatan(kecId) : [];
+            
+            // For desa role, only show their own desa
+            if (userRole === 'desa') {
+                currentDesaList = allDesaList.filter(d => d.id === userDesaId);
+                container.classList.remove('hidden');
+                select.disabled = true;
+                select.classList.add('bg-gray-100', 'cursor-not-allowed');
+            } else if (userRole === 'kecamatan') {
+                container.classList.remove('hidden');
+                select.disabled = false;
+                select.classList.remove('bg-gray-100', 'cursor-not-allowed');
+            } else if (userRole === 'admin') {
+                container.classList.remove('hidden');
+                select.disabled = false;
+                select.classList.remove('bg-gray-100', 'cursor-not-allowed');
+            }
+            
+            // Populate options
+            select.innerHTML = '<option value="">-- Semua Desa --</option>' + 
+                currentDesaList.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
+            
+            // If desa user, auto-select their desa
+            if (userRole === 'desa' && userDesaId) {
+                select.value = userDesaId;
+                selectedDesaId = userDesaId;
+                selectedDesaName = userDesaName;
+            } else {
+                selectedDesaId = null;
+                selectedDesaName = null;
+            }
+        }
+        
+        async function onKecamatanChange() {
+            const kecamatanName = document.getElementById('selectKecamatan').value;
+            
+            // Get kecamatan ID
+            const { data } = await supabase
+                .from('kecamatan')
+                .select('id')
+                .eq('nama', kecamatanName)
+                .single();
+            
+            if (data) {
+                await populateDesaSelect(data.id);
+            }
+            
+            loadFormData();
+        }
+        
+        function onDesaChange() {
+            const select = document.getElementById('selectDesa');
+            selectedDesaId = select.value || null;
+            
+            if (selectedDesaId) {
+                const desa = currentDesaList.find(d => d.id === selectedDesaId);
+                selectedDesaName = desa ? desa.nama : null;
+            } else {
+                selectedDesaName = null;
+            }
+            
+            loadFormData();
+        }
+
+        // ==================== DATA CONFIGURATION ====================
+        const KECAMATAN_LIST = [
+            'Cibalong', 'Pakenjeng', 'Cisewu', 'Cikelet', 'Cisompet',
+            'Bungbulang', 'Caringin', 'Mekarmukti', 'Pamulihan', 'Talegong',
+            'Banjarwangi', 'Singajaya', 'Cihurip', 'Pendeuy', 'Pameungpeuk'
+        ];
+
+        const BATAS_LAYAK = 400;
+
+        // Indicator configurations with formulas
+        const INDICATORS = [
+            {
+                no: 1, nama: 'Lokasi Ibukota',
+                subs: [
+                    { id: '1.1', nama: 'Rasio ketimpangan jarak (batas terdekat/terjauh dengan ibukota)', 
+                      pembanding: 55, bobot: 2, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r <= 0.2 ? 1 : r <= 0.4 ? 2 : r <= 0.6 ? 3 : r <= 0.8 ? 4 : 5 },
+                    { id: '1.2', nama: 'Ketersediaan lahan pusat pemerintahan (ha)', 
+                      pembanding: 50, bobot: 2, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v <= 30 ? 1 : v <= 40 ? 2 : v <= 50 ? 3 : v <= 60 ? 4 : 5 }
+                ]
+            },
+            {
+                no: 2, nama: 'Hidrografi',
+                subs: [
+                    { id: '2.1', nama: 'Potensi air permukaan dan air tanah (liter/detik)', 
+                      pembanding: 4000, bobot: 1, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v <= 1000 ? 1 : v <= 2000 ? 2 : v <= 3000 ? 3 : v <= 4000 ? 4 : 5 },
+                    { id: '2.2', nama: 'Ketersediaan air baku untuk penduduk & ekonomi (%)', 
+                      pembanding: 40, bobot: 1, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v <= 10 ? 1 : v <= 20 ? 2 : v <= 30 ? 3 : v <= 40 ? 4 : 5 }
+                ]
+            },
+            {
+                no: 3, nama: 'Kerawanan Bencana',
+                subs: [
+                    { id: '3.1', nama: 'Indeks Risiko Bencana Indonesia (IRBI) - Kab. Induk', 
+                      pembanding: 72, bobot: 1, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v < 72 ? 5 : v <= 144 ? 3 : 1 },
+                    { id: '3.2', nama: 'Jumlah kejadian bencana alam 10 tahun terakhir (kali)', 
+                      pembanding: 200, bobot: 2, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v === 0 ? 5 : v <= 5 ? 4 : v <= 10 ? 3 : v <= 15 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 4, nama: 'Kualitas SDM',
+                subs: [
+                    { id: '4.1', nama: 'Rasio Angka Lama Sekolah (RLS) CDP vs Pulau Jawa', 
+                      pembanding: 8.61, bobot: 4, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+                    { id: '4.2', nama: 'Rasio APK Pendidikan Menengah Atas vs Pulau Jawa', 
+                      pembanding: 82.43, bobot: 4, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+                    { id: '4.3', nama: 'Rasio APK Pendidikan Dasar vs Pulau Jawa', 
+                      pembanding: 109.52, bobot: 4, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 5, nama: 'Distribusi Penduduk',
+                subs: [
+                    { id: '5.1', nama: 'Rasio kepadatan penduduk CDP vs rata-rata Pulau Jawa', 
+                      pembanding: 1117, bobot: 3, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 6, nama: 'Tindakan Kriminal Umum',
+                subs: [
+                    { id: '6.1', nama: 'Rasio kriminal per 10.000 penduduk CDP vs Pulau Jawa', 
+                      pembanding: 5.2, bobot: 2, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 1 : r >= 0.9 ? 2 : r >= 0.8 ? 3 : r >= 0.7 ? 4 : 5 }
+                ]
+            },
+            {
+                no: 7, nama: 'Konflik Sosial',
+                subs: [
+                    { id: '7.1', nama: 'Jumlah konflik sosial di CDP (kali)', 
+                      pembanding: 2, bobot: 2, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v === 0 ? 5 : v <= 5 ? 4 : v <= 10 ? 3 : v <= 15 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 8, nama: 'Partisipasi Masyarakat dalam Pemilu',
+                subs: [
+                    { id: '8.1', nama: 'Persentase partisipasi pemilih (%)', 
+                      pembanding: 70, bobot: 3, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v > 70 ? 5 : v >= 60 ? 4 : v >= 50 ? 3 : v >= 40 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 9, nama: 'Kohesivitas Sosial',
+                subs: [
+                    { id: '9.1', nama: 'Jumlah etnik/subetnik di CDP', 
+                      pembanding: 1, bobot: 2, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v <= 1 ? 5 : v <= 3 ? 4 : v <= 5 ? 3 : v <= 7 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 10, nama: 'Organisasi Kemasyarakatan',
+                subs: [
+                    { id: '10.1', nama: 'Jumlah ormas terdaftar di CDP', 
+                      pembanding: 40, bobot: 3, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v > 40 ? 5 : v >= 31 ? 4 : v >= 21 ? 3 : v >= 11 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 11, nama: 'Pertumbuhan Ekonomi',
+                subs: [
+                    { id: '11.1', nama: 'Rasio pertumbuhan ekonomi 5 tahun CDP vs Pulau Jawa', 
+                      pembanding: 5.43, bobot: 3, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+                    { id: '11.2', nama: 'Rasio pendapatan perkapita CDP vs Pulau Jawa (Rp)', 
+                      pembanding: 45000000, bobot: 3, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+                    { id: '11.3', nama: 'Rasio IPM CDP vs Pulau Jawa', 
+                      pembanding: 74.24, bobot: 3, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+                    { id: '11.4', nama: 'Rasio angka kemiskinan CDP vs Pulau Jawa (%)', 
+                      pembanding: 7.83, bobot: 3, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r < 0.7 ? 5 : r < 0.8 ? 4 : r < 0.9 ? 3 : r < 1 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 12, nama: 'Potensi Unggulan Daerah',
+                subs: [
+                    { id: '12.1', nama: 'Rasio PDRB sektor pertanian perkapita vs PDB nasional', 
+                      pembanding: 1, bobot: 1, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 },
+                    { id: '12.2', nama: 'Rasio PDRB sektor industri perkapita vs rata-rata Pulau Jawa', 
+                      pembanding: 1, bobot: 1, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 },
+                    { id: '12.3', nama: 'Rasio PDRB sektor perdagangan, hotel, restoran perkapita', 
+                      pembanding: 1, bobot: 2, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 },
+                    { id: '12.4', nama: 'Rasio PDRB sektor pengangkutan & komunikasi perkapita', 
+                      pembanding: 1, bobot: 1, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 },
+                    { id: '12.5', nama: 'Rasio PDRB sektor keuangan & persewaan perkapita', 
+                      pembanding: 1, bobot: 2, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 },
+                    { id: '12.6', nama: 'Rasio PDRB sektor jasa perkapita', 
+                      pembanding: 1, bobot: 2, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 13, nama: 'Kapasitas PAD Induk',
+                subs: [
+                    { id: '13.1', nama: 'Rasio PAD induk terhadap total pendapatan daerah induk', 
+                      pembanding: 4780000000000, bobot: 5, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 14, nama: 'Potensi PAD CDP',
+                subs: [
+                    { id: '14.1', nama: 'Rasio PAD CDP terhadap total PAD induk', 
+                      pembanding: 538000000000, bobot: 8, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 1 : r >= 0.9 ? 2 : r >= 0.8 ? 3 : r >= 0.7 ? 4 : 5 }
+                ]
+            },
+            {
+                no: 15, nama: 'Pengelolaan Keuangan & Aset',
+                subs: [
+                    { id: '15.1', nama: 'Jumlah opini WTP BPK dalam 5 tahun terakhir (1-5)', 
+                      pembanding: 5, bobot: 4, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v >= 5 ? 5 : v >= 4 ? 4 : v >= 3 ? 3 : v >= 2 ? 2 : 1 }
+                ]
+            },
+            {
+                no: 16, nama: 'Aksesibilitas Pelayanan Dasar Pendidikan',
+                subs: [
+                    { id: '16.1', nama: 'Rata-rata jumlah murid per ruang belajar SD', 
+                      pembanding: 28, bobot: 2, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v <= 32 ? 1 : v <= 35 ? 2 : v <= 39 ? 3 : v <= 42 ? 4 : 5 },
+                    { id: '16.2', nama: 'Rata-rata jumlah murid per ruang belajar SMP', 
+                      pembanding: 32, bobot: 2, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v <= 32 ? 1 : v <= 35 ? 2 : v <= 39 ? 3 : v <= 42 ? 4 : 5 },
+                    { id: '16.3', nama: 'Rata-rata jumlah murid per ruang belajar SMA/SMK', 
+                      pembanding: 36, bobot: 1, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v <= 32 ? 1 : v <= 35 ? 2 : v <= 39 ? 3 : v <= 42 ? 4 : 5 }
+                ]
+            },
+            {
+                no: 17, nama: 'Aksesibilitas Pelayanan Dasar Kesehatan',
+                subs: [
+                    { id: '17.1', nama: 'Rasio penduduk per dokter (jumlah penduduk/dokter)', 
+                      pembanding: 2500, bobot: 3, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r < 2500 ? 1 : r < 3000 ? 2 : r < 3500 ? 3 : r < 4000 ? 4 : 5 },
+                    { id: '17.2', nama: 'Rasio penduduk per tempat tidur RS/Puskesmas (penduduk/TT)', 
+                      pembanding: 1000, bobot: 2, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r <= 1000 ? 1 : r <= 1500 ? 2 : r <= 2000 ? 3 : r <= 2500 ? 4 : 5 }
+                ]
+            },
+            {
+                no: 18, nama: 'Aksesibilitas Pelayanan Dasar Infrastruktur',
+                subs: [
+                    { id: '18.1', nama: 'Rasio (panjang jalan/luas) CDP vs rata-rata Pulau Jawa', 
+                      pembanding: 2850, bobot: 10, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 0.8 ? 1 : r >= 0.6 ? 2 : r >= 0.41 ? 3 : r >= 0.21 ? 4 : 5 }
+                ]
+            },
+            {
+                no: 19, nama: 'Jumlah Pegawai ASN di Daerah Induk',
+                subs: [
+                    { id: '19.1', nama: 'Rasio ASN/penduduk induk vs rata-rata Pulau Jawa', 
+                      pembanding: 2680000, bobot: 2, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 0.8 ? 1 : r >= 0.6 ? 2 : r >= 0.41 ? 3 : r >= 0.21 ? 4 : 5 },
+                    { id: '19.2', nama: 'Rasio ASN CDP terhadap ASN induk', 
+                      pembanding: 12500, bobot: 2, type: 'ratio',
+                      skorFunc: (r) => r === '' ? 0 : r >= 0.8 ? 1 : r >= 0.6 ? 2 : r >= 0.41 ? 3 : r >= 0.21 ? 4 : 5 }
+                ]
+            },
+            {
+                no: 20, nama: 'Rancangan RTRW Daerah Persiapan',
+                subs: [
+                    { id: '20.1', nama: 'Ketersediaan dokumen RTRW CDP (Skor 1, 3, atau 5)', 
+                      pembanding: 3, bobot: 2, type: 'direct',
+                      skorFunc: (v) => v === '' ? 0 : v >= 5 ? 5 : v >= 3 ? 3 : 1 }
+                ]
+            }
+        ];
+
+        // ==================== STATE MANAGEMENT ====================
+        let dataPembanding = {};
+        let allKecamatanData = {};
+        let chartKecamatan = null;
+        let chartKelayakan = null;
+
+        // ==================== INITIALIZATION ====================
+        async function init() {
+            try {
+                // Check authentication first
+                const isAuthenticated = await checkAuth();
+                if (!isAuthenticated) return;
+                
+                // Check database connection
+                const connectionOk = await checkSupabaseConnection();
+                if (!connectionOk) {
+                    showToast('Tidak dapat terhubung ke database. Periksa koneksi internet Anda.', 'error');
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    return;
+                }
+                
+                // Verify database schema
+                const schemaValid = await verifyDatabaseSchema();
+                if (!schemaValid) {
+                    showToast('Skema database tidak valid. Silakan hubungi administrator.', 'error');
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    return;
+                }
+                
+                // Load data from Supabase
+                await loadDataPembanding();
+                await loadAllKecamatanData();
+                
+                await populateKecamatanSelect();
+                renderFormIndicators();
+                renderAdminDataPembanding();
+                updateDashboard();
+                await updateRekapTable();
+                updateDesaMonitoringPanel();
+                updateDateTime();
+                setInterval(updateDateTime, 1000);
+                
+                // Load first kecamatan based on role
+                if (userRole === 'desa' && userDesaId) {
+                    // For desa user, load their desa's kecamatan and desa
+                    if (userKecamatanName && KECAMATAN_LIST.includes(userKecamatanName)) {
+                        document.getElementById('selectKecamatan').value = userKecamatanName;
+                        document.getElementById('selectDesa').value = userDesaId;
+                        selectedDesaId = userDesaId;
+                        selectedDesaName = userDesaName;
+                        await loadFormData();
+                    }
+                } else if (userRole === 'kecamatan' && userKecamatanName) {
+                    // For kecamatan user, load their kecamatan
+                    document.getElementById('selectKecamatan').value = userKecamatanName;
+                    await loadFormData();
+                } else if (KECAMATAN_LIST.length > 0) {
+                    // For admin, load first kecamatan
+                    document.getElementById('selectKecamatan').value = KECAMATAN_LIST[0];
+                    await loadFormData();
+                }
+                
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } catch (error) {
+                console.error('Error during initialization:', error);
+                showToast(`Gagal memulai aplikasi: ${error.message}`, 'error');
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            };
+            const dateTimeElement = document.getElementById('currentDateTime');
+            if (dateTimeElement) {
+                dateTimeElement.textContent = now.toLocaleDateString('id-ID', options);
+            }
+        }
+
+        // ==================== DATA PEMBANDING MANAGEMENT ====================
+        async function loadDataPembanding() {
+            try {
+                const { data, error } = await supabase
+                    .from('data_pembanding')
+                    .select('*');
+                
+                if (error) throw error;
+                
+                if (data && data.length > 0) {
+                    // Load from database
+                    data.forEach(item => {
+                        dataPembanding[item.subindikator_kode] = item.nilai_max;
+                    });
+                } else {
+                    // Initialize with default values
+                    INDICATORS.forEach(ind => {
+                        ind.subs.forEach(sub => {
+                            dataPembanding[sub.id] = sub.pembanding;
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading data pembanding:', error);
+                // Fallback to default values
+                INDICATORS.forEach(ind => {
+                    ind.subs.forEach(sub => {
+                        dataPembanding[sub.id] = sub.pembanding;
+                    });
+                });
+            }
+        }
+
+        async function saveDataPembanding() {
+            if (userRole !== 'admin') {
+                showToast('Hanya admin yang dapat mengubah data pembanding!', 'error');
+                return;
+            }
+            
+            try {
+                const updates = [];
+                INDICATORS.forEach(ind => {
+                    ind.subs.forEach(sub => {
+                        const input = document.getElementById(`admin_${sub.id}`);
+                        if (input) {
+                            const newValue = parseFloat(input.value) || sub.pembanding;
+                            dataPembanding[sub.id] = newValue;
+                            updates.push({
+                                subindikator_kode: sub.id,
+                                subindikator_nama: sub.nama,
+                                nilai_max: newValue,
+                                rumus: sub.type
+                            });
+                        }
+                    });
+                });
+                
+                // Upsert to database
+                const { error } = await supabase
+                    .from('data_pembanding')
+                    .upsert(updates, { onConflict: 'subindikator_kode' });
+                
+                if (error) throw error;
+                
+                showToast('Data pembanding berhasil disimpan!');
+                
+                // Recalculate all kecamatan
+                await recalculateAllKecamatan();
+            } catch (error) {
+                console.error('Error saving data pembanding:', error);
+                showToast('Gagal menyimpan data pembanding!', 'error');
+            }
+        }
+
+        async function resetDataPembanding() {
+            if (!confirm('Reset semua data pembanding ke nilai default?')) return;
+            
+            if (userRole !== 'admin') {
+                showToast('Hanya admin yang dapat mereset data pembanding!', 'error');
+                return;
+            }
+            
+            try {
+                INDICATORS.forEach(ind => {
+                    ind.subs.forEach(sub => {
+                        dataPembanding[sub.id] = sub.pembanding;
+                    });
+                });
+                
+                // Save to database
+                const updates = [];
+                INDICATORS.forEach(ind => {
+                    ind.subs.forEach(sub => {
+                        updates.push({
+                            subindikator_kode: sub.id,
+                            subindikator_nama: sub.nama,
+                            nilai_max: sub.pembanding,
+                            rumus: sub.type
+                        });
+                    });
+                });
+                
+                const { error } = await supabase
+                    .from('data_pembanding')
+                    .upsert(updates, { onConflict: 'subindikator_kode' });
+                
+                if (error) throw error;
+                
+                renderAdminDataPembanding();
+                await recalculateAllKecamatan();
+                showToast('Data pembanding berhasil direset!');
+            } catch (error) {
+                console.error('Error resetting data pembanding:', error);
+                showToast('Gagal mereset data pembanding!', 'error');
+            }
+        }
+
+        async function recalculateAllKecamatan() {
+            for (const kec of KECAMATAN_LIST) {
+                if (allKecamatanData[kec] && allKecamatanData[kec].inputs) {
+                    try {
+                        await calculateAndSave(kec, allKecamatanData[kec].inputs);
+                    } catch (error) {
+                        console.error(`Error recalculating ${kec}:`, error);
+                    }
+                }
+            }
+            await loadAllKecamatanData();
+            updateDashboard();
+            await updateRekapTable();
+            loadKecamatanData();
+        }
+
+        // ==================== KECAMATAN DATA MANAGEMENT ====================
+        async function loadAllKecamatanData() {
+            try {
+                // Check database connection first
+                const connectionOk = await checkSupabaseConnection();
+                if (!connectionOk) {
+                    throw new Error('Tidak dapat terhubung ke database. Periksa koneksi internet Anda.');
+                }
+                
+                // Get kecamatan mapping first
+                const { data: kecamatanList, error: kecError } = await supabase
+                    .from('kecamatan')
+                    .select('id, nama');
+                
+                if (kecError) {
+                    console.error('Error loading kecamatan list:', kecError);
+                    throw new Error(`Gagal memuat data kecamatan: ${kecError.message}`);
+                }
+                
+                if (!kecamatanList || kecamatanList.length === 0) {
+                    console.warn('No kecamatan data found in database');
+                    allKecamatanData = {};
+                    return;
+                }
+                
+                const kecamatanMap = {};
+                kecamatanList.forEach(k => {
+                    kecamatanMap[k.id] = k.nama;
+                });
+                
+                // Build query based on role
+                let query = supabase
+                    .from('penilaian')
+                    .select('*')
+                    .eq('status', 'final');
+                
+                if (userRole === 'kecamatan' && userKecamatanId) {
+                    query = query.eq('kecamatan_id', userKecamatanId);
+                } else if (userRole === 'desa' && userDesaId) {
+                    query = query.eq('desa_id', userDesaId);
+                }
+                
+                const { data, error } = await query;
+                
+                if (error) {
+                    console.error('Error loading penilaian data:', error);
+                    throw new Error(`Gagal memuat data penilaian: ${error.message}`);
+                }
+                
+                // Convert to allKecamatanData format
+                allKecamatanData = {};
+                if (data) {
+                    data.forEach(item => {
+                        const kecamatanName = kecamatanMap[item.kecamatan_id];
+                        if (kecamatanName && item.data) {
+                            try {
+                                const jsonData = item.data;
+                                allKecamatanData[kecamatanName] = {
+                                    inputs: jsonData.inputs || {},
+                                    calculations: jsonData.calculations || {},
+                                    totalNilai: item.total_nilai || 0,
+                                    status: item.total_nilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK',
+                                    lastUpdate: item.updated_at
+                                };
+                            } catch (parseError) {
+                                console.error(`Error parsing data for ${kecamatanName}:`, parseError);
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading kecamatan data:', error);
+                allKecamatanData = {};
+                // Show error to user if this is not just a connection issue
+                if (!error.message.includes('koneksi')) {
+                    showToast(`Gagal memuat data: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        // Check Supabase connection
+        async function checkSupabaseConnection() {
+            try {
+                const { data, error } = await supabase
+                    .from('kecamatan')
+                    .select('id')
+                    .limit(1);
+                
+                return !error;
+            } catch (error) {
+                console.error('Connection check failed:', error);
+                return false;
+            }
+        }
+
+        async function saveAllKecamatanData() {
+            // This function is deprecated in favor of direct save in calculateAndSave
+            // Kept for compatibility
+        }
+
+        async function calculateAndSave(kecamatan, inputs) {
+            console.log('Starting calculateAndSave for', kecamatan);
+            
+            // Validate inputs
+            if (!kecamatan) {
+                throw new Error('Nama kecamatan tidak boleh kosong');
+            }
+            
+            if (!inputs || Object.keys(inputs).length === 0) {
+                throw new Error('Data input tidak valid');
+            }
+            
+            let totalNilai = 0;
+            const calculations = {};
+            
+            INDICATORS.forEach(ind => {
+                ind.subs.forEach(sub => {
+                    const inputValue = inputs[sub.id];
+                    const pembanding = dataPembanding[sub.id] || sub.pembanding;
+                    
+                    let rasio = 0;
+                    if (sub.type === 'ratio') {
+                        rasio = pembanding > 0 ? (inputValue / pembanding) : 0;
+                    } else {
+                        rasio = inputValue;
+                    }
+                    
+                    const skor = sub.skorFunc(rasio);
+                    const nilai = skor * sub.bobot;
+                    totalNilai += nilai;
+                    
+                    calculations[sub.id] = {
+                        input: inputValue,
+                        pembanding: pembanding,
+                        rasio: rasio,
+                        skor: skor,
+                        bobot: sub.bobot,
+                        nilai: nilai
+                    };
+                });
+            });
+            
+            const status = totalNilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK';
+            
+            allKecamatanData[kecamatan] = {
+                inputs: inputs,
+                calculations: calculations,
+                totalNilai: totalNilai,
+                status: status,
+                lastUpdate: new Date().toISOString()
+            };
+            
+            // Save to Supabase
+            try {
+                console.log('Getting kecamatan ID for', kecamatan);
+                const { data: kecData, error: kecError } = await supabase
+                    .from('kecamatan')
+                    .select('id')
+                    .eq('nama', kecamatan)
+                    .single();
+                
+                if (kecError) {
+                    console.error('Error getting kecamatan ID:', kecError);
+                    throw new Error(`Gagal mendapatkan ID kecamatan: ${kecError.message}`);
+                }
+                
+                if (!kecData) {
+                    throw new Error(`Kecamatan ${kecamatan} tidak ditemukan dalam database`);
+                }
+                
+                console.log('Kecamatan ID:', kecData.id);
+                
+                // Determine the desa_id to save
+                const saveDesaId = userRole === 'desa' ? userDesaId : (selectedDesaId || null);
+                console.log('Desa ID to save:', saveDesaId);
+                
+                // Validate user authentication
+                if (!currentUser || !currentUser.id) {
+                    throw new Error('User tidak terautentikasi');
+                }
+                
+                const penilaianData = {
+                    kecamatan_id: kecData.id,
+                    desa_id: saveDesaId,
+                    user_id: currentUser.id,
+                    data: {
+                        inputs: inputs,
+                        calculations: calculations
+                    },
+                    total_nilai: totalNilai,
+                    status: 'final'
+                };
+                
+                console.log('Saving data to Supabase:', penilaianData);
+                
+                // Verify database table exists before attempting to save
+                const schemaValid = await verifyDatabaseSchema();
+                if (!schemaValid) {
+                    throw new Error('Skema database tidak valid. Tabel penilaian mungkin tidak ada.');
+                }
+                
+                // Upsert to database
+                const { data, error } = await supabase
+                    .from('penilaian')
+                    .upsert(penilaianData, {
+                        onConflict: saveDesaId ? 'desa_id,status' : 'kecamatan_id,status'
+                    })
+                    .select();
+                
+                if (error) {
+                    console.error('Error saving to Supabase:', error);
+                    throw new Error(`Gagal menyimpan ke database: ${error.message}`);
+                }
+                
+                console.log('Data saved successfully:', data);
+                return { totalNilai, status };
+            } catch (error) {
+                console.error('Error in calculateAndSave:', error);
+                throw error;
+            }
+        }
+
+        // ==================== UI POPULATION ====================
+        async function populateKecamatanSelect() {
+            const select = document.getElementById('selectKecamatan');
+            let kecamatanOptions = KECAMATAN_LIST;
+            
+            // Filter based on role
+            if (userRole === 'kecamatan' && userKecamatanName) {
+                kecamatanOptions = [userKecamatanName];
+            } else if (userRole === 'desa' && userKecamatanName) {
+                kecamatanOptions = [userKecamatanName];
+            }
+            
+            select.innerHTML = kecamatanOptions.map(k => 
+                `<option value="${k}">${k}</option>`
+            ).join('');
+            
+            // Disable select for non-admin users
+            if (userRole !== 'admin') {
+                select.disabled = true;
+                select.classList.add('bg-gray-100', 'cursor-not-allowed');
+            }
+            
+            // Populate desa select based on selected kecamatan
+            const kecamatanName = select.value;
+            if (kecamatanName) {
+                const { data } = await supabase
+                    .from('kecamatan')
+                    .select('id')
+                    .eq('nama', kecamatanName)
+                    .single();
+                
+                if (data) {
+                    await populateDesaSelect(data.id);
+                }
+            }
+        }
+
+        function renderFormIndicators() {
+            const container = document.getElementById('formIndicators');
+            let html = '';
+            
+            INDICATORS.forEach(ind => {
+                html += `
+                    <div class="indicator-group bg-gray-50 rounded-lg p-4 pl-6">
+                        <h4 class="font-semibold text-gray-800 mb-3">
+                            <span class="bg-blue-600 text-white text-sm px-2 py-1 rounded mr-2">${ind.no}</span>
+                            ${ind.nama}
+                        </h4>
+                        <div class="space-y-3">
+                `;
+                
+                ind.subs.forEach(sub => {
+                    html += `
+                        <div class="bg-white p-3 rounded-lg shadow-sm">
+                            <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+                                <div class="flex-1">
+                                    <label class="text-sm text-gray-600">
+                                        <span class="font-medium text-blue-600">${sub.id}</span> - ${sub.nama}
+                                    </label>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-500 whitespace-nowrap">Data Input:</span>
+                                        <input type="number" step="any" id="input_${sub.id}" 
+                                            onchange="calculateForm()" oninput="calculateForm()"
+                                            class="input-field w-28 px-3 py-2 border border-gray-300 rounded-lg text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-500 whitespace-nowrap">Pembanding:</span>
+                                        <span id="pembanding_${sub.id}" class="text-sm font-medium text-gray-700 w-24 text-right">${formatNumber(dataPembanding[sub.id] || sub.pembanding)}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-500">Rasio:</span>
+                                        <span id="rasio_${sub.id}" class="text-sm font-medium text-gray-700 w-16 text-right">-</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-500">Skor:</span>
+                                        <span id="skor_${sub.id}" class="score-badge bg-gray-200 text-gray-700 px-2 py-1 rounded font-bold">0</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-500">Bobot:</span>
+                                        <span class="text-sm font-medium text-gray-700">${sub.bobot}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-gray-500">Nilai:</span>
+                                        <span id="nilai_${sub.id}" class="score-badge bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderAdminDataPembanding() {
+            const container = document.getElementById('adminDataPembanding');
+            let html = '';
+            
+            INDICATORS.forEach(ind => {
+                html += `
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-800 mb-3">
+                            <span class="bg-blue-600 text-white text-sm px-2 py-1 rounded mr-2">${ind.no}</span>
+                            ${ind.nama}
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                `;
+                
+                ind.subs.forEach(sub => {
+                    html += `
+                        <div class="bg-white p-3 rounded-lg shadow-sm">
+                            <label class="block text-sm text-gray-600 mb-1">
+                                <span class="font-medium text-blue-600">${sub.id}</span>
+                            </label>
+                            <p class="text-xs text-gray-500 mb-2">${sub.nama}</p>
+                            <input type="number" step="any" id="admin_${sub.id}" 
+                                value="${dataPembanding[sub.id] || sub.pembanding}"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // ==================== FORM CALCULATIONS ====================
+        function loadKecamatanData() {
+            // Legacy function - redirect to loadFormData
+            loadFormData();
+        }
+        
+        async function loadFormData() {
+            const kecamatan = document.getElementById('selectKecamatan').value;
+            const desaId = selectedDesaId || document.getElementById('selectDesa').value;
+            
+            // Update header display
+            let displayText = kecamatan;
+            if (desaId && selectedDesaName) {
+                displayText = `${kecamatan} - Desa ${selectedDesaName}`;
+            } else if (userRole === 'desa' && userDesaName) {
+                displayText = `${kecamatan} - Desa ${userDesaName}`;
+            }
+            document.getElementById('currentKecamatan').textContent = displayText;
+            
+            // Update pembanding displays
+            INDICATORS.forEach(ind => {
+                ind.subs.forEach(sub => {
+                    const pembandingEl = document.getElementById(`pembanding_${sub.id}`);
+                    if (pembandingEl) {
+                        pembandingEl.textContent = formatNumber(dataPembanding[sub.id] || sub.pembanding);
+                    }
+                });
+            });
+            
+            // Try to load data from database based on desa or kecamatan
+            try {
+                let query = supabase
+                    .from('penilaian')
+                    .select('*')
+                    .eq('status', 'final');
+                
+                // Determine the desa_id to query
+                const queryDesaId = userRole === 'desa' ? userDesaId : (desaId || null);
+                
+                if (queryDesaId) {
+                    query = query.eq('desa_id', queryDesaId);
+                } else {
+                    // Get kecamatan ID
+                    const { data: kecData } = await supabase
+                        .from('kecamatan')
+                        .select('id')
+                        .eq('nama', kecamatan)
+                        .single();
+                    
+                    if (kecData) {
+                        query = query.eq('kecamatan_id', kecData.id).is('desa_id', null);
+                    }
+                }
+                
+                const { data, error } = await query.maybeSingle();
+                
+                if (!error && data && data.data && data.data.inputs) {
+                    // Load existing data
+                    const inputs = data.data.inputs;
+                    INDICATORS.forEach(ind => {
+                        ind.subs.forEach(sub => {
+                            const input = document.getElementById(`input_${sub.id}`);
+                            if (input && inputs[sub.id] !== undefined) {
+                                input.value = inputs[sub.id];
+                            } else if (input) {
+                                input.value = '';
+                            }
+                        });
+                    });
+                    calculateForm();
+                } else {
+                    resetForm(false);
+                }
+            } catch (error) {
+                console.log('No existing data found, using empty form');
+                resetForm(false);
+            }
+        }
+
+        function calculateForm() {
+            const kecamatan = document.getElementById('selectKecamatan').value;
+            let totalNilai = 0;
+            let totalBobot = 0;
+            
+            INDICATORS.forEach(ind => {
+                ind.subs.forEach(sub => {
+                    const input = document.getElementById(`input_${sub.id}`);
+                    const inputValue = input ? parseFloat(input.value) || 0 : 0;
+                    const pembanding = dataPembanding[sub.id] || sub.pembanding;
+                    
+                    let rasio = 0;
+                    if (sub.type === 'ratio') {
+                        rasio = pembanding > 0 ? (inputValue / pembanding) : 0;
+                    } else {
+                        rasio = inputValue;
+                    }
+                    
+                    const skor = inputValue === 0 ? 0 : sub.skorFunc(rasio);
+                    const nilai = skor * sub.bobot;
+                    totalNilai += nilai;
+                    totalBobot += sub.bobot;
+                    
+                    // Update display
+                    const rasioEl = document.getElementById(`rasio_${sub.id}`);
+                    const skorEl = document.getElementById(`skor_${sub.id}`);
+                    const nilaiEl = document.getElementById(`nilai_${sub.id}`);
+                    
+                    if (rasioEl) rasioEl.textContent = sub.type === 'ratio' ? rasio.toFixed(3) : inputValue || '-';
+                    if (skorEl) {
+                        skorEl.textContent = skor;
+                        skorEl.className = `score-badge px-2 py-1 rounded font-bold ${getSkorColor(skor)}`;
+                    }
+                    if (nilaiEl) {
+                        nilaiEl.textContent = nilai;
+                        nilaiEl.className = `score-badge px-2 py-1 rounded font-bold ${getNilaiColor(nilai, sub.bobot)}`;
+                    }
+                });
+            });
+            
+            // Update totals
+            document.getElementById('totalNilai').textContent = totalNilai.toFixed(0);
+            document.getElementById('totalBobot').textContent = totalBobot;
+            
+            const statusEl = document.getElementById('statusKelayakan');
+            if (totalNilai >= BATAS_LAYAK) {
+                statusEl.textContent = 'LAYAK (Berkapasitas)';
+                statusEl.className = 'px-6 py-3 rounded-lg text-white font-bold text-lg status-layak';
+            } else {
+                statusEl.textContent = 'TIDAK LAYAK (Tidak Berkapasitas)';
+                statusEl.className = 'px-6 py-3 rounded-lg text-white font-bold text-lg status-tidak-layak';
+            }
+        }
+
+        function getSkorColor(skor) {
+            if (skor >= 5) return 'bg-green-500 text-white';
+            if (skor >= 4) return 'bg-green-400 text-white';
+            if (skor >= 3) return 'bg-yellow-400 text-gray-800';
+            if (skor >= 2) return 'bg-orange-400 text-white';
+            return 'bg-red-400 text-white';
+        }
+
+        function getNilaiColor(nilai, bobot) {
+            const maxNilai = bobot * 5;
+            const ratio = nilai / maxNilai;
+            if (ratio >= 0.8) return 'bg-green-100 text-green-700';
+            if (ratio >= 0.6) return 'bg-yellow-100 text-yellow-700';
+            if (ratio >= 0.4) return 'bg-orange-100 text-orange-700';
+            return 'bg-red-100 text-red-700';
+        }
+
+        async function saveData() {
+            const saveButton = document.querySelector('button[onclick="saveData()"]');
+            const originalText = saveButton.innerHTML;
+            
+            // Show loading state
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menyimpan...';
+            
+            const kecamatan = document.getElementById('selectKecamatan').value;
+            const inputs = {};
+            let hasEmptyInputs = false;
+            let emptyInputNames = [];
+            
+            // Collect form data and check for empty inputs
+            INDICATORS.forEach(ind => {
+                ind.subs.forEach(sub => {
+                    const input = document.getElementById(`input_${sub.id}`);
+                    if (input) {
+                        const value = input.value.trim();
+                        if (value === '') {
+                            hasEmptyInputs = true;
+                            emptyInputNames.push(sub.nama);
+                        }
+                        inputs[sub.id] = parseFloat(value) || 0;
+                    }
+                });
+            });
+            
+            // Check if any inputs are empty
+            if (hasEmptyInputs) {
+                showToast('Harap isi lengkap data: ' + emptyInputNames.slice(0, 3).join(', ') + (emptyInputNames.length > 3 ? '...' : ''), 'error');
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalText;
+                return;
+            }
+            
+            try {
+                // Check if user is authenticated
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError || !session) {
+                    throw new Error('Sesi login telah expired. Silakan login kembali.');
+                }
+                
+                // Verify database schema
+                const schemaValid = await verifyDatabaseSchema();
+                if (!schemaValid) {
+                    throw new Error('Skema database tidak valid. Silakan hubungi administrator.');
+                }
+                
+                // Get kecamatan ID
+                const { data: kecData, error: kecError } = await supabase
+                    .from('kecamatan')
+                    .select('id')
+                    .eq('nama', kecamatan)
+                    .single();
+                    
+                if (kecError) {
+                    console.error('Error getting kecamatan ID:', kecError);
+                    throw new Error(`Gagal mendapatkan data kecamatan: ${kecError.message}`);
+                }
+                
+                if (!kecData) {
+                    throw new Error('Kecamatan tidak ditemukan dalam database');
+                }
+                
+                // Calculate and save
+                console.log('Starting save process for', kecamatan);
+                const result = await calculateAndSave(kecamatan, inputs);
+                console.log('Save result:', result);
+                
+                // Refresh data and UI
+                await loadAllKecamatanData();
+                updateDashboard();
+                await updateRekapTable();
+                
+                // Determine display name for toast
+                let displayName = kecamatan;
+                if (userRole === 'desa' && userDesaName) {
+                    displayName = `Desa ${userDesaName}`;
+                } else if (selectedDesaName) {
+                    displayName = `Desa ${selectedDesaName}`;
+                }
+                
+                showToast(`Data ${displayName} berhasil disimpan!`);
+            } catch (error) {
+                console.error('Error saving data:', error);
+                
+                // Check for specific error types and provide more user-friendly messages
+                let errorMessage = error.message;
+                
+                if (error.message.includes('ON CONFLICT specification') ||
+                    error.message.includes('unique or exclusion constraint')) {
+                    errorMessage = 'Data yang anda masukkan belum lengkap';
+                } else if (error.message.includes('Gagal menyimpan ke database')) {
+                    errorMessage = 'Data yang anda masukkan belum lengkap';
+                }
+                
+                showToast(`Gagal menyimpan data: ${errorMessage}`, 'error');
+            } finally {
+                // Restore button state
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalText;
+            }
+        }
+
+        function resetForm(showConfirm = true) {
+            if (showConfirm && !confirm('Reset semua input form?')) return;
+            
+            INDICATORS.forEach(ind => {
+                ind.subs.forEach(sub => {
+                    const input = document.getElementById(`input_${sub.id}`);
+                    if (input) input.value = '';
+                    
+                    const rasioEl = document.getElementById(`rasio_${sub.id}`);
+                    const skorEl = document.getElementById(`skor_${sub.id}`);
+                    const nilaiEl = document.getElementById(`nilai_${sub.id}`);
+                    
+                    if (rasioEl) rasioEl.textContent = '-';
+                    if (skorEl) { skorEl.textContent = '0'; skorEl.className = 'score-badge bg-gray-200 text-gray-700 px-2 py-1 rounded font-bold'; }
+                    if (nilaiEl) { nilaiEl.textContent = '0'; nilaiEl.className = 'score-badge bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold'; }
+                });
+            });
+            
+            document.getElementById('totalNilai').textContent = '0';
+            const statusEl = document.getElementById('statusKelayakan');
+            statusEl.textContent = 'TIDAK LAYAK';
+            statusEl.className = 'px-6 py-3 rounded-lg text-white font-bold text-lg status-tidak-layak';
+        }
+
+        // ==================== DASHBOARD ====================
+        function updateDashboard() {
+            let sudahInput = 0;
+            let layak = 0;
+            let tidakLayak = 0;
+            const nilaiPerKecamatan = [];
+            
+            KECAMATAN_LIST.forEach(kec => {
+                const data = allKecamatanData[kec];
+                if (data && data.totalNilai !== undefined) {
+                    sudahInput++;
+                    nilaiPerKecamatan.push({ nama: kec, nilai: data.totalNilai, status: data.status });
+                    if (data.status === 'LAYAK') {
+                        layak++;
+                    } else {
+                        tidakLayak++;
+                    }
+                } else {
+                    nilaiPerKecamatan.push({ nama: kec, nilai: 0, status: 'Belum Input' });
+                }
+            });
+            
+            // Update stats
+            document.getElementById('statSudahInput').textContent = sudahInput;
+            document.getElementById('statLayak').textContent = layak;
+            document.getElementById('statTidakLayak').textContent = tidakLayak;
+            
+            // Update kecamatan cards
+            const cardsContainer = document.getElementById('kecamatanCards');
+            cardsContainer.innerHTML = nilaiPerKecamatan.map(k => `
+                <div class="bg-gray-50 rounded-lg p-4 card-hover cursor-pointer" onclick="openKecamatan('${k.nama}')">
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-semibold text-gray-800">${k.nama}</h4>
+                        <span class="text-xs px-2 py-1 rounded-full ${
+                            k.status === 'LAYAK' ? 'bg-green-100 text-green-700' : 
+                            k.status === 'TIDAK LAYAK' ? 'bg-red-100 text-red-700' : 
+                            'bg-gray-200 text-gray-600'
+                        }">${k.status}</span>
+                    </div>
+                    <p class="text-2xl font-bold ${k.nilai >= BATAS_LAYAK ? 'text-green-600' : 'text-gray-600'}">${k.nilai.toFixed(0)}</p>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                        <div class="h-2 rounded-full ${k.nilai >= BATAS_LAYAK ? 'bg-green-500' : 'bg-blue-500'}" 
+                            style="width: ${Math.min(k.nilai / 500 * 100, 100)}%"></div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Update charts
+            updateCharts(nilaiPerKecamatan, layak, tidakLayak, KECAMATAN_LIST.length - sudahInput);
+        }
+
+        function updateCharts(nilaiData, layak, tidakLayak, belumInput) {
+            // Bar chart
+            const ctxBar = document.getElementById('chartKecamatan').getContext('2d');
+            if (chartKecamatan) chartKecamatan.destroy();
+            
+            chartKecamatan = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: nilaiData.map(k => k.nama),
+                    datasets: [{
+                        label: 'Total Nilai',
+                        data: nilaiData.map(k => k.nilai),
+                        backgroundColor: nilaiData.map(k => 
+                            k.nilai >= BATAS_LAYAK ? 'rgba(16, 185, 129, 0.7)' : 'rgba(59, 130, 246, 0.7)'
+                        ),
+                        borderColor: nilaiData.map(k => 
+                            k.nilai >= BATAS_LAYAK ? 'rgb(16, 185, 129)' : 'rgb(59, 130, 246)'
+                        ),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        annotation: {
+                            annotations: {
+                                line1: {
+                                    type: 'line',
+                                    yMin: BATAS_LAYAK,
+                                    yMax: BATAS_LAYAK,
+                                    borderColor: 'rgb(239, 68, 68)',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5]
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, max: 500 }
+                    }
+                }
+            });
+            
+            // Pie chart
+            const ctxPie = document.getElementById('chartKelayakan').getContext('2d');
+            if (chartKelayakan) chartKelayakan.destroy();
+            
+            chartKelayakan = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['LAYAK', 'TIDAK LAYAK', 'Belum Input'],
+                    datasets: [{
+                        data: [layak, tidakLayak, belumInput],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(156, 163, 175, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function openKecamatan(nama) {
+            document.getElementById('selectKecamatan').value = nama;
+            loadKecamatanData();
+            showTab('form');
+        }
+        
+        // ==================== DESA MONITORING ====================
+        async function updateDesaMonitoringPanel() {
+            const panel = document.getElementById('desaMonitoringPanel');
+            const kecCardsContainer = document.getElementById('kecamatanCardsContainer');
+            
+            // Only show for kecamatan role
+            if (userRole !== 'kecamatan' || !userKecamatanId) {
+                panel.classList.add('hidden');
+                kecCardsContainer.classList.remove('hidden');
+                return;
+            }
+            
+            // Hide kecamatan cards for kecamatan users, show desa panel
+            kecCardsContainer.classList.add('hidden');
+            panel.classList.remove('hidden');
+            
+            // Update title
+            document.getElementById('monitoringKecamatanName').textContent = userKecamatanName || '';
+            
+            // Get desa list for this kecamatan
+            const desaList = getDesaListByKecamatan(userKecamatanId);
+            
+            // Get penilaian data for all desa in this kecamatan
+            const { data: penilaianList, error } = await supabase
+                .from('penilaian')
+                .select('desa_id, total_nilai, updated_at, status')
+                .eq('kecamatan_id', userKecamatanId)
+                .eq('status', 'final');
+            
+            if (error) {
+                console.error('Error loading penilaian for desa monitoring:', error);
+            }
+            
+            // Create a map of desa_id to penilaian
+            const penilaianMap = {};
+            if (penilaianList) {
+                penilaianList.forEach(p => {
+                    if (p.desa_id) {
+                        penilaianMap[p.desa_id] = p;
+                    }
+                });
+            }
+            
+            // Populate table
+            const tbody = document.getElementById('desaMonitoringTableBody');
+            let html = '';
+            
+            desaList.forEach((desa, idx) => {
+                const penilaian = penilaianMap[desa.id];
+                const sudahIsi = !!penilaian;
+                const totalNilai = penilaian ? penilaian.total_nilai : 0;
+                const kelayakan = totalNilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK';
+                const lastUpdate = penilaian ? formatDate(penilaian.updated_at) : '-';
+                
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm text-gray-900">${idx + 1}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900">${desa.nama}</td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="px-2 py-1 text-xs rounded-full ${sudahIsi ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">
+                                ${sudahIsi ? 'Sudah Isi' : 'Belum Isi'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="font-bold ${totalNilai >= BATAS_LAYAK ? 'text-green-600' : 'text-gray-600'}">
+                                ${sudahIsi ? totalNilai.toFixed(0) : '-'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            ${sudahIsi ? `<span class="px-2 py-1 text-xs rounded-full ${kelayakan === 'LAYAK' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${kelayakan}</span>` : '-'}
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="viewDesaData('${desa.id}', '${desa.nama}')" class="text-blue-600 hover:text-blue-800 mx-1" title="Lihat Detail">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            if (desaList.length === 0) {
+                html = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Tidak ada data desa</td></tr>';
+            }
+            
+            tbody.innerHTML = html;
+        }
+        
+        async function viewDesaData(desaId, desaName) {
+            // Set selected desa and load form
+            selectedDesaId = desaId;
+            selectedDesaName = desaName;
+            
+            document.getElementById('selectDesa').value = desaId;
+            await loadFormData();
+            showTab('form');
+        }
+
+        // ==================== REKAP TABLE ====================
+        async function updateRekapTable() {
+            const tbody = document.getElementById('rekapTableBody');
+            const titleEl = document.getElementById('rekapTitle');
+            const colHeaderEl = document.getElementById('rekapColHeader');
+            const importBtn = document.getElementById('importExcelBtn');
+            let html = '';
+            
+            // For kecamatan role, show desa data instead
+            if (userRole === 'kecamatan' && userKecamatanId) {
+                // Update UI for kecamatan view
+                titleEl.innerHTML = `<i class="fas fa-table mr-2"></i>Rekap Data Desa - Kecamatan ${userKecamatanName}`;
+                colHeaderEl.textContent = 'Desa';
+                importBtn.classList.add('hidden'); // Hide import for kecamatan
+                
+                // Get desa list for this kecamatan
+                const desaList = getDesaListByKecamatan(userKecamatanId);
+                
+                // Get penilaian data for all desa in this kecamatan
+                const { data: penilaianList, error } = await supabase
+                    .from('penilaian')
+                    .select('desa_id, total_nilai, updated_at, status')
+                    .eq('kecamatan_id', userKecamatanId)
+                    .eq('status', 'final');
+                
+                if (error) {
+                    console.error('Error loading penilaian for rekap:', error);
+                }
+                
+                // Create a map of desa_id to penilaian
+                const penilaianMap = {};
+                if (penilaianList) {
+                    penilaianList.forEach(p => {
+                        if (p.desa_id) {
+                            penilaianMap[p.desa_id] = p;
+                        }
+                    });
+                }
+                
+                // Render desa rows
+                desaList.forEach((desa, idx) => {
+                    const penilaian = penilaianMap[desa.id];
+                    const nilai = penilaian ? penilaian.total_nilai : 0;
+                    const status = penilaian ? (nilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK') : 'Belum Input';
+                    const lastUpdate = penilaian ? formatDate(penilaian.updated_at) : '-';
+                    
+                    html += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-900">${idx + 1}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">${desa.nama}</td>
+                            <td class="px-4 py-3 text-sm text-center">
+                                <span class="font-bold ${nilai >= BATAS_LAYAK ? 'text-green-600' : 'text-gray-600'}">${nilai.toFixed(0)}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="px-2 py-1 text-xs rounded-full ${
+                                    status === 'LAYAK' ? 'bg-green-100 text-green-700' : 
+                                    status === 'TIDAK LAYAK' ? 'bg-red-100 text-red-700' : 
+                                    'bg-gray-100 text-gray-600'
+                                }">${status}</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-center text-gray-500">${lastUpdate}</td>
+                            <td class="px-4 py-3 text-center no-print">
+                                <button onclick="viewDesaData('${desa.id}', '${desa.nama}')" class="text-blue-600 hover:text-blue-800 mx-1" title="Lihat/Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteDesaData('${desa.id}', '${desa.nama}')" class="text-red-600 hover:text-red-800 mx-1" title="Hapus">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                if (desaList.length === 0) {
+                    html = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">Tidak ada data desa</td></tr>';
+                }
+            } else {
+                // Default view for admin - show all kecamatan
+                titleEl.innerHTML = '<i class="fas fa-table mr-2"></i>Rekap Data Seluruh Kecamatan';
+                colHeaderEl.textContent = 'Kecamatan';
+                importBtn.classList.remove('hidden');
+                
+                KECAMATAN_LIST.forEach((kec, idx) => {
+                    const data = allKecamatanData[kec];
+                    const nilai = data ? data.totalNilai : 0;
+                    const status = data ? data.status : 'Belum Input';
+                    const lastUpdate = data ? formatDate(data.lastUpdate) : '-';
+                    
+                    html += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-900">${idx + 1}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">${kec}</td>
+                            <td class="px-4 py-3 text-sm text-center">
+                                <span class="font-bold ${nilai >= BATAS_LAYAK ? 'text-green-600' : 'text-gray-600'}">${nilai.toFixed(0)}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="px-2 py-1 text-xs rounded-full ${
+                                    status === 'LAYAK' ? 'bg-green-100 text-green-700' : 
+                                    status === 'TIDAK LAYAK' ? 'bg-red-100 text-red-700' : 
+                                    'bg-gray-100 text-gray-600'
+                                }">${status}</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-center text-gray-500">${lastUpdate}</td>
+                            <td class="px-4 py-3 text-center no-print">
+                                <button onclick="openKecamatan('${kec}')" class="text-blue-600 hover:text-blue-800 mx-1" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteKecamatanData('${kec}')" class="text-red-600 hover:text-red-800 mx-1" title="Hapus">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            tbody.innerHTML = html;
+        }
+        
+        // Delete desa data function for kecamatan role
+        async function deleteDesaData(desaId, desaName) {
+            if (!confirm(`Hapus data ${desaName}?`)) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('penilaian')
+                    .delete()
+                    .eq('desa_id', desaId)
+                    .eq('status', 'final');
+                
+                if (error) throw error;
+                
+                await updateRekapTable();
+                await updateDesaMonitoringPanel();
+                
+                showToast(`Data ${desaName} berhasil dihapus!`);
+            } catch (error) {
+                console.error('Error deleting desa data:', error);
+                showToast('Gagal menghapus data!', 'error');
+            }
+        }
+
+        async function deleteKecamatanData(kecamatan) {
+            if (!confirm(`Hapus data ${kecamatan}?`)) return;
+            
+            try {
+                // Get kecamatan ID
+                const { data: kecData, error: kecError } = await supabase
+                    .from('kecamatan')
+                    .select('id')
+                    .eq('nama', kecamatan)
+                    .single();
+                
+                if (kecError) throw kecError;
+                
+                // Delete from database
+                const { error } = await supabase
+                    .from('penilaian')
+                    .delete()
+                    .eq('kecamatan_id', kecData.id)
+                    .eq('status', 'final');
+                
+                if (error) throw error;
+                
+                delete allKecamatanData[kecamatan];
+                updateDashboard();
+                await updateRekapTable();
+                
+                if (document.getElementById('selectKecamatan').value === kecamatan) {
+                    loadKecamatanData();
+                }
+                
+                showToast(`Data ${kecamatan} berhasil dihapus!`);
+            } catch (error) {
+                console.error('Error deleting data:', error);
+                showToast('Gagal menghapus data!', 'error');
+            }
+        }
+
+        // ==================== EXPORT / IMPORT ====================
+        async function exportExcel() {
+            const workbook = XLSX.utils.book_new();
+            
+            // For kecamatan role, export desa data
+            if (userRole === 'kecamatan' && userKecamatanId) {
+                const desaList = getDesaListByKecamatan(userKecamatanId);
+                
+                // Get all penilaian for desa in this kecamatan
+                const { data: penilaianList, error } = await supabase
+                    .from('penilaian')
+                    .select('*')
+                    .eq('kecamatan_id', userKecamatanId)
+                    .eq('status', 'final');
+                
+                if (error) {
+                    console.error('Error loading penilaian for export:', error);
+                    showToast('Gagal memuat data untuk export!', 'error');
+                    return;
+                }
+                
+                // Create penilaian map by desa_id
+                const penilaianMap = {};
+                if (penilaianList) {
+                    penilaianList.forEach(p => {
+                        if (p.desa_id) penilaianMap[p.desa_id] = p;
+                    });
+                }
+                
+                // Sheet 1: Rekap Desa
+                const rekapData = [
+                    ['No', 'Desa', 'Total Nilai', 'Status', 'Terakhir Update']
+                ];
+                desaList.forEach((desa, idx) => {
+                    const penilaian = penilaianMap[desa.id];
+                    const nilai = penilaian ? penilaian.total_nilai : 0;
+                    const status = penilaian ? (nilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK') : 'Belum Input';
+                    const lastUpdate = penilaian ? formatDate(penilaian.updated_at) : '-';
+                    rekapData.push([idx + 1, desa.nama, nilai, status, lastUpdate]);
+                });
+                const wsRekap = XLSX.utils.aoa_to_sheet(rekapData);
+                XLSX.utils.book_append_sheet(workbook, wsRekap, 'Rekap Desa');
+                
+                // Sheet 2: Detail per Desa
+                desaList.forEach(desa => {
+                    const penilaian = penilaianMap[desa.id];
+                    if (penilaian && penilaian.data_input) {
+                        const detailData = [
+                            ['No', 'Subindikator', 'Data Input', 'Data Pembanding', 'Rasio/Nilai', 'Skor', 'Bobot', 'Nilai']
+                        ];
+                        
+                        const calculations = penilaian.calculations || {};
+                        INDICATORS.forEach(ind => {
+                            ind.subs.forEach(sub => {
+                                const calc = calculations[sub.id] || {};
+                                detailData.push([
+                                    sub.id,
+                                    sub.nama,
+                                    calc.input || 0,
+                                    calc.pembanding || dataPembanding[sub.id] || sub.pembanding,
+                                    calc.rasio ? calc.rasio.toFixed(4) : 0,
+                                    calc.skor || 0,
+                                    sub.bobot,
+                                    calc.nilai || 0
+                                ]);
+                            });
+                        });
+                        
+                        detailData.push(['', '', '', '', '', '', 'TOTAL', penilaian.total_nilai]);
+                        detailData.push(['', '', '', '', '', '', 'STATUS', penilaian.total_nilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK']);
+                        
+                        const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
+                        XLSX.utils.book_append_sheet(workbook, wsDetail, desa.nama.substring(0, 30));
+                    }
+                });
+                
+                XLSX.writeFile(workbook, `KAPASDA_${userKecamatanName}_${formatDateFile(new Date())}.xlsx`);
+                showToast('File Excel berhasil diexport!');
+            } else {
+                // Default admin view - export all kecamatan
+                // Sheet 1: Rekap
+                const rekapData = [
+                    ['No', 'Kecamatan', 'Total Nilai', 'Status', 'Terakhir Update']
+                ];
+                KECAMATAN_LIST.forEach((kec, idx) => {
+                    const data = allKecamatanData[kec];
+                    rekapData.push([
+                        idx + 1,
+                        kec,
+                        data ? data.totalNilai : 0,
+                        data ? data.status : 'Belum Input',
+                        data ? formatDate(data.lastUpdate) : '-'
+                    ]);
+                });
+                const wsRekap = XLSX.utils.aoa_to_sheet(rekapData);
+                XLSX.utils.book_append_sheet(workbook, wsRekap, 'Rekap');
+                
+                // Sheet 2: Detail per Kecamatan
+                KECAMATAN_LIST.forEach(kec => {
+                    const data = allKecamatanData[kec];
+                    if (data && data.calculations) {
+                        const detailData = [
+                            ['No', 'Subindikator', 'Data Input', 'Data Pembanding', 'Rasio/Nilai', 'Skor', 'Bobot', 'Nilai']
+                        ];
+                        
+                        let rowNum = 1;
+                        INDICATORS.forEach(ind => {
+                            ind.subs.forEach(sub => {
+                                const calc = data.calculations[sub.id] || {};
+                                detailData.push([
+                                    sub.id,
+                                    sub.nama,
+                                    calc.input || 0,
+                                    calc.pembanding || dataPembanding[sub.id] || sub.pembanding,
+                                    calc.rasio ? calc.rasio.toFixed(4) : 0,
+                                    calc.skor || 0,
+                                    sub.bobot,
+                                    calc.nilai || 0
+                                ]);
+                                rowNum++;
+                            });
+                        });
+                        
+                        detailData.push(['', '', '', '', '', '', 'TOTAL', data.totalNilai]);
+                        detailData.push(['', '', '', '', '', '', 'STATUS', data.status]);
+                        
+                        const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
+                        XLSX.utils.book_append_sheet(workbook, wsDetail, kec.substring(0, 30));
+                    }
+                });
+                
+                // Sheet 3: Data Pembanding
+                const pembandingData = [
+                    ['Subindikator', 'Nama', 'Nilai Pembanding', 'Bobot']
+                ];
+                INDICATORS.forEach(ind => {
+                    ind.subs.forEach(sub => {
+                        pembandingData.push([
+                            sub.id,
+                            sub.nama,
+                            dataPembanding[sub.id] || sub.pembanding,
+                            sub.bobot
+                        ]);
+                    });
+                });
+                const wsPembanding = XLSX.utils.aoa_to_sheet(pembandingData);
+                XLSX.utils.book_append_sheet(workbook, wsPembanding, 'Data Pembanding');
+                
+                XLSX.writeFile(workbook, `KAPASDA_Garut_Selatan_${formatDateFile(new Date())}.xlsx`);
+                showToast('File Excel berhasil diexport!');
+            }
+        }
+
+        function importExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Try to import from each kecamatan sheet
+                    let imported = 0;
+                    workbook.SheetNames.forEach(sheetName => {
+                        if (sheetName !== 'Rekap' && sheetName !== 'Data Pembanding') {
+                            const kecamatan = KECAMATAN_LIST.find(k => sheetName.startsWith(k));
+                            if (kecamatan) {
+                                const worksheet = workbook.Sheets[sheetName];
+                                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                                
+                                const inputs = {};
+                                jsonData.slice(1).forEach(row => {
+                                    if (row[0] && row[2] !== undefined) {
+                                        inputs[row[0]] = parseFloat(row[2]) || 0;
+                                    }
+                                });
+                                
+                                if (Object.keys(inputs).length > 0) {
+                                    calculateAndSave(kecamatan, inputs);
+                                    imported++;
+                                }
+                            }
+                        }
+                    });
+                    
+                    if (imported > 0) {
+                        updateDashboard();
+                        await updateRekapTable();
+                        loadKecamatanData();
+                        showToast(`${imported} data kecamatan berhasil diimport!`);
+                    } else {
+                        showToast('Tidak ada data yang bisa diimport. Pastikan format file sesuai.', 'error');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('Gagal membaca file Excel!', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        function exportAllData() {
+            const exportData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                dataPembanding: dataPembanding,
+                allKecamatanData: allKecamatanData
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `KAPASDA_Backup_${formatDateFile(new Date())}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Export data penilaian ke CSV format
+        async function exportPenilaianCSV() {
+            try {
+                // Get kecamatan mapping first
+                const { data: kecamatanList, error: kecError } = await supabase
+                    .from('kecamatan')
+                    .select('id, nama');
+                
+                if (kecError) {
+                    console.error('Error loading kecamatan list:', kecError);
+                    showToast('Gagal memuat data kecamatan!', 'error');
+                    return;
+                }
+                
+                const kecamatanMap = {};
+                kecamatanList.forEach(k => {
+                    kecamatanMap[k.id] = k.nama;
+                });
+                
+                // Get desa mapping
+                const { data: desaList, error: desaError } = await supabase
+                    .from('desa')
+                    .select('id, nama, kecamatan_id');
+                
+                if (desaError) {
+                    console.error('Error loading desa list:', desaError);
+                    showToast('Gagal memuat data desa!', 'error');
+                    return;
+                }
+                
+                const desaMap = {};
+                desaList.forEach(d => {
+                    desaMap[d.id] = d.nama;
+                });
+                
+                // Build query based on role
+                let query = supabase
+                    .from('penilaian')
+                    .select('*');
+                
+                if (userRole === 'kecamatan' && userKecamatanId) {
+                    query = query.eq('kecamatan_id', userKecamatanId);
+                } else if (userRole === 'desa' && userDesaId) {
+                    query = query.eq('desa_id', userDesaId);
+                }
+                
+                const { data, error } = await query;
+                
+                if (error) {
+                    console.error('Error loading penilaian data:', error);
+                    showToast('Gagal memuat data penilaian!', 'error');
+                    return;
+                }
+                
+                if (!data || data.length === 0) {
+                    showToast('Tidak ada data penilaian untuk diekspor!', 'error');
+                    return;
+                }
+                
+                // Prepare CSV data
+                let csvContent = "ID,Kecamatan,Desa,User ID,Total Nilai,Status,Tanggal Update\n";
+                
+                data.forEach(item => {
+                    const kecamatanName = kecamatanMap[item.kecamatan_id] || 'Unknown';
+                    const desaName = item.desa_id ? (desaMap[item.desa_id] || 'Unknown') : '-';
+                    const userId = item.user_id || '-';
+                    const totalNilai = item.total_nilai || 0;
+                    const status = item.total_nilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK';
+                    const updateDate = item.updated_at ? new Date(item.updated_at).toLocaleString('id-ID') : '-';
+                    
+                    csvContent += `${item.id},${kecamatanName},${desaName},${userId},${totalNilai},${status},${updateDate}\n`;
+                });
+                
+                // Create and download CSV file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `Penilaian_Data_${formatDateFile(new Date())}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showToast('File CSV berhasil diexport!');
+            } catch (error) {
+                console.error('Error exporting CSV:', error);
+                showToast('Gagal mengekspor file CSV!', 'error');
+            }
+            showToast('Backup data berhasil!');
+        }
+
+        function importAllData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!confirm('Import data akan menimpa semua data yang ada. Lanjutkan?')) {
+                event.target.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const importData = JSON.parse(e.target.result);
+                    
+                    if (importData.dataPembanding) {
+                        dataPembanding = importData.dataPembanding;
+                        localStorage.setItem('kapasda_pembanding', JSON.stringify(dataPembanding));
+                    }
+                    
+                    if (importData.allKecamatanData) {
+                        allKecamatanData = importData.allKecamatanData;
+                        saveAllKecamatanData();
+                    }
+                    
+                    renderAdminDataPembanding();
+                    updateDashboard();
+                    await updateRekapTable();
+                    loadKecamatanData();
+                    showToast('Data berhasil direstore!');
+                } catch (err) {
+                    console.error(err);
+                    showToast('Gagal membaca file backup!', 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        async function clearAllData() {
+            if (userRole !== 'admin') {
+                showToast('Hanya admin yang dapat menghapus semua data!', 'error');
+                return;
+            }
+            
+            if (!confirm('PERINGATAN: Semua data kecamatan akan dihapus permanen. Lanjutkan?')) return;
+            if (!confirm('Apakah Anda yakin? Tindakan ini tidak dapat dibatalkan!')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('penilaian')
+                    .delete()
+                    .eq('status', 'final');
+                
+                if (error) throw error;
+                
+                allKecamatanData = {};
+                updateDashboard();
+                await updateRekapTable();
+                loadKecamatanData();
+                showToast('Semua data berhasil dihapus!');
+            } catch (error) {
+                console.error('Error clearing all data:', error);
+                showToast('Gagal menghapus semua data!', 'error');
+            }
+        }
+
+        // ==================== UTILITIES ====================
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            
+            // Find and activate the corresponding nav tab button
+            const tabButton = document.querySelector(`[onclick="showTab('${tabId}')"]`);
+            if (tabButton) {
+                tabButton.classList.add('active');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 z-50 ${
+                type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+            }`;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            // Set different timeout based on type
+            const timeout = type === 'success' ? 3000 : 5000; // 3 seconds for success, 5 seconds for error
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, timeout);
+        }
+
+        function formatNumber(num) {
+            if (num === undefined || num === null) return '-';
+            if (num >= 1000000000) return (num / 1000000000).toFixed(2) + ' M';
+            if (num >= 1000000) return (num / 1000000).toFixed(2) + ' Jt';
+            if (num >= 1000) return num.toLocaleString('id-ID');
+            return num.toString();
+        }
+
+        function formatDate(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleDateString('id-ID', { 
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function formatDateFile(date) {
+            return date.toISOString().slice(0, 10).replace(/-/g, '');
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+
+<script>
+/**
+ * Iframe 元素高亮注入脚本
+ * 需要在目标网站中引入此脚本来支持跨域 iframe 高亮功能
+ *
+ * 使用方法：
+ * 1. 将此脚本添加到目标网站的 HTML 中
+ * 2. 或通过浏览器扩展、用户脚本等方式注入
+ */
+
+(function () {
+  "use strict";
+
+  // 检查是否在 iframe 中
+  if (window.self === window.top) {
+    return; // 不在 iframe 中，不执行
+  }
+
+  // 检查是否已经初始化过
+  if (window.__iframeHighlightInitialized) {
+    return;
+  }
+  window.__iframeHighlightInitialized = true;
+  console.log("Iframe 高亮脚本已加载");
+
+  // 创建高亮覆盖层
+  var overlay = document.createElement("div");
+  overlay.id = "iframe-highlight-overlay";
+  overlay.style.cssText = "\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100vw;\n    height: 100vh;\n    pointer-events: none;\n    z-index: 999999;\n    overflow: hidden;\n  ";
+
+  // 创建悬停高亮框（虚线边框）
+  var highlightBox = document.createElement("div");
+  highlightBox.id = "iframe-highlight-box";
+  highlightBox.style.cssText = "\n    position: absolute;\n    border: 2px dashed #007AFF;\n    background: rgba(0, 122, 255, 0.08);\n    pointer-events: none;\n    display: none;\n    transition: all 0.1s ease;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);\n    border-radius: 2px;\n  ";
+
+  // 创建选中节点的常驻高亮框（实线边框）
+  var selectedBox = document.createElement("div");
+  selectedBox.id = "iframe-selected-box";
+  selectedBox.style.cssText = "\n    position: absolute;\n    border: 2px solid #007AFF;\n    pointer-events: none;\n    display: none;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 107, 53, 0.4);\n    border-radius: 2px;\n    z-index: 1000000;\n  ";
+
+  // 创建悬停标签显示
+  var tagLabel = document.createElement("div");
+  tagLabel.id = "iframe-tag-label";
+  tagLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 2px 6px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 2px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000001;\n    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\n    font-weight: 500;\n  ";
+
+  // 创建选中节点标签
+  var selectedLabel = document.createElement("div");
+  selectedLabel.id = "iframe-selected-label";
+  selectedLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 3px 8px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 3px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000002;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n    font-weight: 600;\n  ";
+  overlay.appendChild(highlightBox);
+  overlay.appendChild(selectedBox);
+  overlay.appendChild(tagLabel);
+  overlay.appendChild(selectedLabel);
+  document.body.appendChild(overlay);
+
+  // 存储当前选中的元素
+  var selectedElement = null;
+  var highlightEnabled = false;
+
+  // 更新选中元素的高亮显示
+  function updateSelectedHighlight(element) {
+    console.log("updateSelectedHighlight called with:", element);
+    if (!element) {
+      selectedBox.style.display = "none";
+      selectedLabel.style.display = "none";
+      selectedElement = null;
+      console.log("Cleared selected highlight");
+      return;
+    }
+    selectedElement = element;
+    var rect = element.getBoundingClientRect();
+    console.log("Selected element rect:", rect);
+
+    // 更新选中高亮框位置
+    selectedBox.style.display = "block";
+    selectedBox.style.left = "".concat(rect.left - 2, "px");
+    selectedBox.style.top = "".concat(rect.top - 2, "px");
+    selectedBox.style.width = "".concat(rect.width + 4, "px");
+    selectedBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新选中标签位置和内容
+    selectedLabel.style.display = "block";
+    selectedLabel.textContent = "\u2713 <".concat(element.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 28;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 5) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    var labelWidth = selectedLabel.offsetWidth || 100; // 预估宽度
+    if (labelLeft + labelWidth > window.innerWidth - 10) {
+      labelLeft = window.innerWidth - labelWidth - 10;
+    }
+    selectedLabel.style.left = "".concat(Math.max(5, labelLeft), "px");
+    selectedLabel.style.top = "".concat(labelTop, "px");
+    console.log("Selected highlight positioned at:", {
+      left: selectedBox.style.left,
+      top: selectedBox.style.top,
+      width: selectedBox.style.width,
+      height: selectedBox.style.height
+    });
+  }
+  function getElementSelector(element) {
+    if (!(element instanceof Element)) throw new Error('Argument must be a DOM element');
+    var segments = [];
+    var current = element;
+    while (current !== document.documentElement) {
+      var selector = '';
+      // 优先检查唯一ID
+      if (current.id && document.querySelectorAll("#".concat(current.id)).length === 1) {
+        segments.unshift("#".concat(current.id));
+        break; // ID唯一，无需继续向上
+      }
+
+      // 生成类名选择器（取第一个有效类名）
+      var classes = Array.from(current.classList).filter(function (c) {
+        return !c.startsWith('js-');
+      });
+      var className = classes.length > 0 ? ".".concat(classes[0]) : '';
+
+      // 生成位置索引（nth-child）
+      var tag = current.tagName.toLowerCase();
+      if (!className) {
+        var siblings = Array.from(current.parentNode.children);
+        var index = siblings.findIndex(function (el) {
+          return el === current;
+        }) + 1;
+        selector = "".concat(tag, ":nth-child(").concat(index, ")");
+      } else {
+        selector = className;
+      }
+      segments.unshift(selector);
+      current = current.parentElement;
+    }
+
+    // 处理根元素
+    if (current === document.documentElement) {
+      segments.unshift('html');
+    }
+    return segments.join(' > ');
+  }
+
+  // 获取元素文本内容
+  function getElementText(element) {
+    var _element$textContent;
+    if (element.tagName === "INPUT") {
+      return element.value || element.placeholder || "";
+    }
+    if (element.tagName === "TEXTAREA") {
+      return element.value || element.placeholder || "";
+    }
+    var text = ((_element$textContent = element.textContent) === null || _element$textContent === void 0 ? void 0 : _element$textContent.trim()) || "";
+    return text.length > 50 ? text.substring(0, 50) + "..." : text;
+  }
+
+  // 获取元素属性信息
+  function getElementAttributes(element) {
+    var attrs = {};
+    for (var i = 0; i < element.attributes.length; i++) {
+      var attr = element.attributes[i];
+      attrs[attr.name] = attr.value;
+    }
+    return attrs;
+  }
+
+  // 鼠标悬停事件处理
+  function handleMouseOver(e) {
+    if (!highlightEnabled) return;
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免高亮 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 如果是已选中的元素，不显示悬停高亮
+    if (target === selectedElement) {
+      highlightBox.style.display = "none";
+      tagLabel.style.display = "none";
+      return;
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+
+    // 更新悬停高亮框位置
+    highlightBox.style.display = "block";
+    highlightBox.style.left = "".concat(rect.left - 2, "px");
+    highlightBox.style.top = "".concat(rect.top - 2, "px");
+    highlightBox.style.width = "".concat(rect.width + 4, "px");
+    highlightBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新标签位置和内容
+    tagLabel.style.display = "block";
+    tagLabel.textContent = "<".concat(target.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 22;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 0) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    if (labelLeft + tagLabel.offsetWidth > window.innerWidth) {
+      labelLeft = window.innerWidth - tagLabel.offsetWidth - 5;
+    }
+    tagLabel.style.left = "".concat(Math.max(0, labelLeft), "px");
+    tagLabel.style.top = "".concat(labelTop, "px");
+
+    // 发送消息到父窗口
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 鼠标离开事件处理
+  function handleMouseOut(e) {
+    if (!highlightEnabled) return;
+    var relatedTarget = e.relatedTarget;
+
+    // 如果鼠标移动到高亮相关元素上，不隐藏高亮
+    if (relatedTarget && (relatedTarget === highlightBox || relatedTarget === tagLabel || relatedTarget === overlay || relatedTarget === selectedBox || relatedTarget === selectedLabel)) {
+      return;
+    }
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: null,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 点击事件处理
+  function handleClick(e) {
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免处理 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 检查是否是交互元素，这些元素需要保留默认行为
+    var isInteractiveElement = ['input', 'textarea', 'select', 'button', 'a'].includes(target.tagName.toLowerCase());
+
+    // 如果高亮功能启用，对于非交互元素阻止默认行为和事件传播
+    if (highlightEnabled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+    console.log("Element clicked:", {
+      tagName: target.tagName,
+      selector: selector,
+      rect: rect
+    });
+
+    // 立即更新选中高亮
+    updateSelectedHighlight(target);
+
+    // 隐藏悬停高亮，因为现在是选中状态
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-click",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 监听来自父窗口的消息
+  function handleParentMessage(event) {
+    console.log("Received message from parent:", event.data);
+    if (event.data.type === "iframe-highlight-toggle") {
+      var enabled = event.data.enabled;
+      console.log("Highlight toggle:", enabled);
+      if (enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "enable-iframe-highlight") {
+      console.log("Enable iframe highlight");
+      enableHighlight();
+    } else if (event.data.type === "disable-iframe-highlight") {
+      console.log("Disable iframe highlight");
+      disableHighlight();
+    } else if (event.data.type === "toggle-iframe-highlight") {
+      var _enabled = event.data.enabled !== undefined ? event.data.enabled : !highlightEnabled;
+      console.log("Toggle iframe highlight to:", _enabled);
+      if (_enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "update-selected-element") {
+      var selector = event.data.selector;
+      console.log("Update selected element with selector:", selector);
+      if (selector) {
+        try {
+          var element = document.querySelector(selector);
+          console.log("Found element by selector:", element);
+          updateSelectedHighlight(element);
+        } catch (error) {
+          console.warn("Failed to select element:", error);
+          updateSelectedHighlight(null);
+        }
+      } else {
+        updateSelectedHighlight(null);
+      }
+    } else if (event.data.type === "clear-selected-element") {
+      console.log("Clear selected element");
+      updateSelectedHighlight(null);
+    }
+  }
+
+  // 启用高亮功能
+  function enableHighlight() {
+    console.log("Enabling highlight");
+    document.addEventListener("mouseover", handleMouseOver, true);
+    document.addEventListener("mouseout", handleMouseOut, true);
+    document.addEventListener("click", handleClick, true);
+    highlightEnabled = true;
+    overlay.style.display = "block";
+  }
+
+  // 禁用高亮功能
+  function disableHighlight() {
+    console.log("Disabling highlight");
+    highlightEnabled = false;
+    // 保持事件监听器，但通过 highlightEnabled 变量控制行为
+    // 这样可以保留选中状态的显示
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    // 不隐藏 selectedBox 和 selectedLabel，保留选中状态
+  }
+
+  // 完全禁用高亮功能（移除所有监听器）
+  function fullyDisableHighlight() {
+    console.log("Fully disabling highlight");
+    highlightEnabled = false;
+    document.removeEventListener("mouseover", handleMouseOver, true);
+    document.removeEventListener("mouseout", handleMouseOut, true);
+    document.removeEventListener("click", handleClick, true);
+    overlay.style.display = "none";
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    selectedBox.style.display = "none";
+    selectedLabel.style.display = "none";
+  }
+
+  // 添加事件监听
+  enableHighlight();
+  window.addEventListener("message", handleParentMessage);
+
+  // 暴露全局函数供外部调用
+  window.__iframeHighlightControl = {
+    enable: enableHighlight,
+    disable: disableHighlight,
+    fullyDisable: fullyDisableHighlight,
+    isEnabled: function isEnabled() {
+      return highlightEnabled;
+    },
+    getSelectedElement: function getSelectedElement() {
+      return selectedElement;
+    },
+    updateSelected: updateSelectedHighlight,
+    // 通过消息发送开关控制
+    sendToggleMessage: function sendToggleMessage(enabled) {
+      window.parent.postMessage({
+        type: 'iframe-highlight-status',
+        enabled: enabled || highlightEnabled,
+        source: 'iframe-highlight-injector'
+      }, '*');
+    }
+  };
+
+  // 通知父窗口脚本已加载
+  try {
+    window.parent.postMessage({
+      type: "iframe-highlight-ready",
+      data: {
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: Date.now()
+      },
+      source: "iframe-highlight-injector"
+    }, "*");
+  } catch (error) {
+    console.warn("无法发送就绪消息到父窗口:", error);
+  }
+
+  // 清理函数
+  window.__iframeHighlightCleanup = function () {
+    fullyDisableHighlight();
+    window.removeEventListener("message", handleParentMessage);
+    if (overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
+    delete window.__iframeHighlightInitialized;
+    delete window.__iframeHighlightCleanup;
+  };
+})();
+</script>
+
+<script>
+/**
+ * Iframe 元素高亮注入脚本
+ * 需要在目标网站中引入此脚本来支持跨域 iframe 高亮功能
+ *
+ * 使用方法：
+ * 1. 将此脚本添加到目标网站的 HTML 中
+ * 2. 或通过浏览器扩展、用户脚本等方式注入
+ */
+
+(function () {
+  "use strict";
+
+  // 检查是否在 iframe 中
+  if (window.self === window.top) {
+    return; // 不在 iframe 中，不执行
+  }
+
+  // 检查是否已经初始化过
+  if (window.__iframeHighlightInitialized) {
+    return;
+  }
+  window.__iframeHighlightInitialized = true;
+  console.log("Iframe 高亮脚本已加载");
+
+  // 创建高亮覆盖层
+  var overlay = document.createElement("div");
+  overlay.id = "iframe-highlight-overlay";
+  overlay.style.cssText = "\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100vw;\n    height: 100vh;\n    pointer-events: none;\n    z-index: 999999;\n    overflow: hidden;\n  ";
+
+  // 创建悬停高亮框（虚线边框）
+  var highlightBox = document.createElement("div");
+  highlightBox.id = "iframe-highlight-box";
+  highlightBox.style.cssText = "\n    position: absolute;\n    border: 2px dashed #007AFF;\n    background: rgba(0, 122, 255, 0.08);\n    pointer-events: none;\n    display: none;\n    transition: all 0.1s ease;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);\n    border-radius: 2px;\n  ";
+
+  // 创建选中节点的常驻高亮框（实线边框）
+  var selectedBox = document.createElement("div");
+  selectedBox.id = "iframe-selected-box";
+  selectedBox.style.cssText = "\n    position: absolute;\n    border: 2px solid #007AFF;\n    pointer-events: none;\n    display: none;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 107, 53, 0.4);\n    border-radius: 2px;\n    z-index: 1000000;\n  ";
+
+  // 创建悬停标签显示
+  var tagLabel = document.createElement("div");
+  tagLabel.id = "iframe-tag-label";
+  tagLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 2px 6px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 2px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000001;\n    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\n    font-weight: 500;\n  ";
+
+  // 创建选中节点标签
+  var selectedLabel = document.createElement("div");
+  selectedLabel.id = "iframe-selected-label";
+  selectedLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 3px 8px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 3px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000002;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n    font-weight: 600;\n  ";
+  overlay.appendChild(highlightBox);
+  overlay.appendChild(selectedBox);
+  overlay.appendChild(tagLabel);
+  overlay.appendChild(selectedLabel);
+  document.body.appendChild(overlay);
+
+  // 存储当前选中的元素
+  var selectedElement = null;
+  var highlightEnabled = false;
+
+  // 更新选中元素的高亮显示
+  function updateSelectedHighlight(element) {
+    console.log("updateSelectedHighlight called with:", element);
+    if (!element) {
+      selectedBox.style.display = "none";
+      selectedLabel.style.display = "none";
+      selectedElement = null;
+      console.log("Cleared selected highlight");
+      return;
+    }
+    selectedElement = element;
+    var rect = element.getBoundingClientRect();
+    console.log("Selected element rect:", rect);
+
+    // 更新选中高亮框位置
+    selectedBox.style.display = "block";
+    selectedBox.style.left = "".concat(rect.left - 2, "px");
+    selectedBox.style.top = "".concat(rect.top - 2, "px");
+    selectedBox.style.width = "".concat(rect.width + 4, "px");
+    selectedBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新选中标签位置和内容
+    selectedLabel.style.display = "block";
+    selectedLabel.textContent = "\u2713 <".concat(element.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 28;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 5) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    var labelWidth = selectedLabel.offsetWidth || 100; // 预估宽度
+    if (labelLeft + labelWidth > window.innerWidth - 10) {
+      labelLeft = window.innerWidth - labelWidth - 10;
+    }
+    selectedLabel.style.left = "".concat(Math.max(5, labelLeft), "px");
+    selectedLabel.style.top = "".concat(labelTop, "px");
+    console.log("Selected highlight positioned at:", {
+      left: selectedBox.style.left,
+      top: selectedBox.style.top,
+      width: selectedBox.style.width,
+      height: selectedBox.style.height
+    });
+  }
+  function getElementSelector(element) {
+    if (!(element instanceof Element)) throw new Error('Argument must be a DOM element');
+    var segments = [];
+    var current = element;
+    while (current !== document.documentElement) {
+      var selector = '';
+      // 优先检查唯一ID
+      if (current.id && document.querySelectorAll("#".concat(current.id)).length === 1) {
+        segments.unshift("#".concat(current.id));
+        break; // ID唯一，无需继续向上
+      }
+
+      // 生成类名选择器（取第一个有效类名）
+      var classes = Array.from(current.classList).filter(function (c) {
+        return !c.startsWith('js-');
+      });
+      var className = classes.length > 0 ? ".".concat(classes[0]) : '';
+
+      // 生成位置索引（nth-child）
+      var tag = current.tagName.toLowerCase();
+      if (!className) {
+        var siblings = Array.from(current.parentNode.children);
+        var index = siblings.findIndex(function (el) {
+          return el === current;
+        }) + 1;
+        selector = "".concat(tag, ":nth-child(").concat(index, ")");
+      } else {
+        selector = className;
+      }
+      segments.unshift(selector);
+      current = current.parentElement;
+    }
+
+    // 处理根元素
+    if (current === document.documentElement) {
+      segments.unshift('html');
+    }
+    return segments.join(' > ');
+  }
+
+  // 获取元素文本内容
+  function getElementText(element) {
+    var _element$textContent;
+    if (element.tagName === "INPUT") {
+      return element.value || element.placeholder || "";
+    }
+    if (element.tagName === "TEXTAREA") {
+      return element.value || element.placeholder || "";
+    }
+    var text = ((_element$textContent = element.textContent) === null || _element$textContent === void 0 ? void 0 : _element$textContent.trim()) || "";
+    return text.length > 50 ? text.substring(0, 50) + "..." : text;
+  }
+
+  // 获取元素属性信息
+  function getElementAttributes(element) {
+    var attrs = {};
+    for (var i = 0; i < element.attributes.length; i++) {
+      var attr = element.attributes[i];
+      attrs[attr.name] = attr.value;
+    }
+    return attrs;
+  }
+
+  // 鼠标悬停事件处理
+  function handleMouseOver(e) {
+    if (!highlightEnabled) return;
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免高亮 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 如果是已选中的元素，不显示悬停高亮
+    if (target === selectedElement) {
+      highlightBox.style.display = "none";
+      tagLabel.style.display = "none";
+      return;
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+
+    // 更新悬停高亮框位置
+    highlightBox.style.display = "block";
+    highlightBox.style.left = "".concat(rect.left - 2, "px");
+    highlightBox.style.top = "".concat(rect.top - 2, "px");
+    highlightBox.style.width = "".concat(rect.width + 4, "px");
+    highlightBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新标签位置和内容
+    tagLabel.style.display = "block";
+    tagLabel.textContent = "<".concat(target.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 22;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 0) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    if (labelLeft + tagLabel.offsetWidth > window.innerWidth) {
+      labelLeft = window.innerWidth - tagLabel.offsetWidth - 5;
+    }
+    tagLabel.style.left = "".concat(Math.max(0, labelLeft), "px");
+    tagLabel.style.top = "".concat(labelTop, "px");
+
+    // 发送消息到父窗口
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 鼠标离开事件处理
+  function handleMouseOut(e) {
+    if (!highlightEnabled) return;
+    var relatedTarget = e.relatedTarget;
+
+    // 如果鼠标移动到高亮相关元素上，不隐藏高亮
+    if (relatedTarget && (relatedTarget === highlightBox || relatedTarget === tagLabel || relatedTarget === overlay || relatedTarget === selectedBox || relatedTarget === selectedLabel)) {
+      return;
+    }
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: null,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 点击事件处理
+  function handleClick(e) {
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免处理 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 检查是否是交互元素，这些元素需要保留默认行为
+    var isInteractiveElement = ['input', 'textarea', 'select', 'button', 'a'].includes(target.tagName.toLowerCase());
+
+    // 如果高亮功能启用，对于非交互元素阻止默认行为和事件传播
+    if (highlightEnabled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+    console.log("Element clicked:", {
+      tagName: target.tagName,
+      selector: selector,
+      rect: rect
+    });
+
+    // 立即更新选中高亮
+    updateSelectedHighlight(target);
+
+    // 隐藏悬停高亮，因为现在是选中状态
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-click",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 监听来自父窗口的消息
+  function handleParentMessage(event) {
+    console.log("Received message from parent:", event.data);
+    if (event.data.type === "iframe-highlight-toggle") {
+      var enabled = event.data.enabled;
+      console.log("Highlight toggle:", enabled);
+      if (enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "enable-iframe-highlight") {
+      console.log("Enable iframe highlight");
+      enableHighlight();
+    } else if (event.data.type === "disable-iframe-highlight") {
+      console.log("Disable iframe highlight");
+      disableHighlight();
+    } else if (event.data.type === "toggle-iframe-highlight") {
+      var _enabled = event.data.enabled !== undefined ? event.data.enabled : !highlightEnabled;
+      console.log("Toggle iframe highlight to:", _enabled);
+      if (_enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "update-selected-element") {
+      var selector = event.data.selector;
+      console.log("Update selected element with selector:", selector);
+      if (selector) {
+        try {
+          var element = document.querySelector(selector);
+          console.log("Found element by selector:", element);
+          updateSelectedHighlight(element);
+        } catch (error) {
+          console.warn("Failed to select element:", error);
+          updateSelectedHighlight(null);
+        }
+      } else {
+        updateSelectedHighlight(null);
+      }
+    } else if (event.data.type === "clear-selected-element") {
+      console.log("Clear selected element");
+      updateSelectedHighlight(null);
+    }
+  }
+
+  // 启用高亮功能
+  function enableHighlight() {
+    console.log("Enabling highlight");
+    document.addEventListener("mouseover", handleMouseOver, true);
+    document.addEventListener("mouseout", handleMouseOut, true);
+    document.addEventListener("click", handleClick, true);
+    highlightEnabled = true;
+    overlay.style.display = "block";
+  }
+
+  // 禁用高亮功能
+  function disableHighlight() {
+    console.log("Disabling highlight");
+    highlightEnabled = false;
+    // 保持事件监听器，但通过 highlightEnabled 变量控制行为
+    // 这样可以保留选中状态的显示
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    // 不隐藏 selectedBox 和 selectedLabel，保留选中状态
+  }
+
+  // 完全禁用高亮功能（移除所有监听器）
+  function fullyDisableHighlight() {
+    console.log("Fully disabling highlight");
+    highlightEnabled = false;
+    document.removeEventListener("mouseover", handleMouseOver, true);
+    document.removeEventListener("mouseout", handleMouseOut, true);
+    document.removeEventListener("click", handleClick, true);
+    overlay.style.display = "none";
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    selectedBox.style.display = "none";
+    selectedLabel.style.display = "none";
+  }
+
+  // 添加事件监听
+  enableHighlight();
+  window.addEventListener("message", handleParentMessage);
+
+  // 暴露全局函数供外部调用
+  window.__iframeHighlightControl = {
+    enable: enableHighlight,
+    disable: disableHighlight,
+    fullyDisable: fullyDisableHighlight,
+    isEnabled: function isEnabled() {
+      return highlightEnabled;
+    },
+    getSelectedElement: function getSelectedElement() {
+      return selectedElement;
+    },
+    updateSelected: updateSelectedHighlight,
+    // 通过消息发送开关控制
+    sendToggleMessage: function sendToggleMessage(enabled) {
+      window.parent.postMessage({
+        type: 'iframe-highlight-status',
+        enabled: enabled || highlightEnabled,
+        source: 'iframe-highlight-injector'
+      }, '*');
+    }
+  };
+
+  // 通知父窗口脚本已加载
+  try {
+    window.parent.postMessage({
+      type: "iframe-highlight-ready",
+      data: {
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: Date.now()
+      },
+      source: "iframe-highlight-injector"
+    }, "*");
+  } catch (error) {
+    console.warn("无法发送就绪消息到父窗口:", error);
+  }
+
+  // 清理函数
+  window.__iframeHighlightCleanup = function () {
+    fullyDisableHighlight();
+    window.removeEventListener("message", handleParentMessage);
+    if (overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
+    delete window.__iframeHighlightInitialized;
+    delete window.__iframeHighlightCleanup;
+  };
+})();
+</script>
+
+<script>
+/**
+ * Iframe 元素高亮注入脚本
+ * 需要在目标网站中引入此脚本来支持跨域 iframe 高亮功能
+ *
+ * 使用方法：
+ * 1. 将此脚本添加到目标网站的 HTML 中
+ * 2. 或通过浏览器扩展、用户脚本等方式注入
+ */
+
+(function () {
+  "use strict";
+
+  // 检查是否在 iframe 中
+  if (window.self === window.top) {
+    return; // 不在 iframe 中，不执行
+  }
+
+  // 检查是否已经初始化过
+  if (window.__iframeHighlightInitialized) {
+    return;
+  }
+  window.__iframeHighlightInitialized = true;
+  console.log("Iframe 高亮脚本已加载");
+
+  // 创建高亮覆盖层
+  var overlay = document.createElement("div");
+  overlay.id = "iframe-highlight-overlay";
+  overlay.style.cssText = "\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100vw;\n    height: 100vh;\n    pointer-events: none;\n    z-index: 999999;\n    overflow: hidden;\n  ";
+
+  // 创建悬停高亮框（虚线边框）
+  var highlightBox = document.createElement("div");
+  highlightBox.id = "iframe-highlight-box";
+  highlightBox.style.cssText = "\n    position: absolute;\n    border: 2px dashed #007AFF;\n    background: rgba(0, 122, 255, 0.08);\n    pointer-events: none;\n    display: none;\n    transition: all 0.1s ease;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);\n    border-radius: 2px;\n  ";
+
+  // 创建选中节点的常驻高亮框（实线边框）
+  var selectedBox = document.createElement("div");
+  selectedBox.id = "iframe-selected-box";
+  selectedBox.style.cssText = "\n    position: absolute;\n    border: 2px solid #007AFF;\n    pointer-events: none;\n    display: none;\n    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 107, 53, 0.4);\n    border-radius: 2px;\n    z-index: 1000000;\n  ";
+
+  // 创建悬停标签显示
+  var tagLabel = document.createElement("div");
+  tagLabel.id = "iframe-tag-label";
+  tagLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 2px 6px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 2px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000001;\n    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\n    font-weight: 500;\n  ";
+
+  // 创建选中节点标签
+  var selectedLabel = document.createElement("div");
+  selectedLabel.id = "iframe-selected-label";
+  selectedLabel.style.cssText = "\n    position: absolute;\n    background: #007AFF;\n    color: white;\n    padding: 3px 8px;\n    font-size: 11px;\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n    border-radius: 3px;\n    pointer-events: none;\n    display: none;\n    white-space: nowrap;\n    z-index: 1000002;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);\n    font-weight: 600;\n  ";
+  overlay.appendChild(highlightBox);
+  overlay.appendChild(selectedBox);
+  overlay.appendChild(tagLabel);
+  overlay.appendChild(selectedLabel);
+  document.body.appendChild(overlay);
+
+  // 存储当前选中的元素
+  var selectedElement = null;
+  var highlightEnabled = false;
+
+  // 更新选中元素的高亮显示
+  function updateSelectedHighlight(element) {
+    console.log("updateSelectedHighlight called with:", element);
+    if (!element) {
+      selectedBox.style.display = "none";
+      selectedLabel.style.display = "none";
+      selectedElement = null;
+      console.log("Cleared selected highlight");
+      return;
+    }
+    selectedElement = element;
+    var rect = element.getBoundingClientRect();
+    console.log("Selected element rect:", rect);
+
+    // 更新选中高亮框位置
+    selectedBox.style.display = "block";
+    selectedBox.style.left = "".concat(rect.left - 2, "px");
+    selectedBox.style.top = "".concat(rect.top - 2, "px");
+    selectedBox.style.width = "".concat(rect.width + 4, "px");
+    selectedBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新选中标签位置和内容
+    selectedLabel.style.display = "block";
+    selectedLabel.textContent = "\u2713 <".concat(element.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 28;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 5) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    var labelWidth = selectedLabel.offsetWidth || 100; // 预估宽度
+    if (labelLeft + labelWidth > window.innerWidth - 10) {
+      labelLeft = window.innerWidth - labelWidth - 10;
+    }
+    selectedLabel.style.left = "".concat(Math.max(5, labelLeft), "px");
+    selectedLabel.style.top = "".concat(labelTop, "px");
+    console.log("Selected highlight positioned at:", {
+      left: selectedBox.style.left,
+      top: selectedBox.style.top,
+      width: selectedBox.style.width,
+      height: selectedBox.style.height
+    });
+  }
+  function getElementSelector(element) {
+    if (!(element instanceof Element)) throw new Error('Argument must be a DOM element');
+    var segments = [];
+    var current = element;
+    while (current !== document.documentElement) {
+      var selector = '';
+      // 优先检查唯一ID
+      if (current.id && document.querySelectorAll("#".concat(current.id)).length === 1) {
+        segments.unshift("#".concat(current.id));
+        break; // ID唯一，无需继续向上
+      }
+
+      // 生成类名选择器（取第一个有效类名）
+      var classes = Array.from(current.classList).filter(function (c) {
+        return !c.startsWith('js-');
+      });
+      var className = classes.length > 0 ? ".".concat(classes[0]) : '';
+
+      // 生成位置索引（nth-child）
+      var tag = current.tagName.toLowerCase();
+      if (!className) {
+        var siblings = Array.from(current.parentNode.children);
+        var index = siblings.findIndex(function (el) {
+          return el === current;
+        }) + 1;
+        selector = "".concat(tag, ":nth-child(").concat(index, ")");
+      } else {
+        selector = className;
+      }
+      segments.unshift(selector);
+      current = current.parentElement;
+    }
+
+    // 处理根元素
+    if (current === document.documentElement) {
+      segments.unshift('html');
+    }
+    return segments.join(' > ');
+  }
+
+  // 获取元素文本内容
+  function getElementText(element) {
+    var _element$textContent;
+    if (element.tagName === "INPUT") {
+      return element.value || element.placeholder || "";
+    }
+    if (element.tagName === "TEXTAREA") {
+      return element.value || element.placeholder || "";
+    }
+    var text = ((_element$textContent = element.textContent) === null || _element$textContent === void 0 ? void 0 : _element$textContent.trim()) || "";
+    return text.length > 50 ? text.substring(0, 50) + "..." : text;
+  }
+
+  // 获取元素属性信息
+  function getElementAttributes(element) {
+    var attrs = {};
+    for (var i = 0; i < element.attributes.length; i++) {
+      var attr = element.attributes[i];
+      attrs[attr.name] = attr.value;
+    }
+    return attrs;
+  }
+
+  // 鼠标悬停事件处理
+  function handleMouseOver(e) {
+    if (!highlightEnabled) return;
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免高亮 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 如果是已选中的元素，不显示悬停高亮
+    if (target === selectedElement) {
+      highlightBox.style.display = "none";
+      tagLabel.style.display = "none";
+      return;
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+
+    // 更新悬停高亮框位置
+    highlightBox.style.display = "block";
+    highlightBox.style.left = "".concat(rect.left - 2, "px");
+    highlightBox.style.top = "".concat(rect.top - 2, "px");
+    highlightBox.style.width = "".concat(rect.width + 4, "px");
+    highlightBox.style.height = "".concat(rect.height + 4, "px");
+
+    // 更新标签位置和内容
+    tagLabel.style.display = "block";
+    tagLabel.textContent = "<".concat(target.tagName.toLowerCase(), ">");
+
+    // 计算标签位置，确保不超出视窗
+    var labelTop = rect.top - 22;
+    var labelLeft = rect.left;
+
+    // 如果标签会超出顶部，显示在元素下方
+    if (labelTop < 0) {
+      labelTop = rect.bottom + 5;
+    }
+
+    // 如果标签会超出右侧，向左调整
+    if (labelLeft + tagLabel.offsetWidth > window.innerWidth) {
+      labelLeft = window.innerWidth - tagLabel.offsetWidth - 5;
+    }
+    tagLabel.style.left = "".concat(Math.max(0, labelLeft), "px");
+    tagLabel.style.top = "".concat(labelTop, "px");
+
+    // 发送消息到父窗口
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 鼠标离开事件处理
+  function handleMouseOut(e) {
+    if (!highlightEnabled) return;
+    var relatedTarget = e.relatedTarget;
+
+    // 如果鼠标移动到高亮相关元素上，不隐藏高亮
+    if (relatedTarget && (relatedTarget === highlightBox || relatedTarget === tagLabel || relatedTarget === overlay || relatedTarget === selectedBox || relatedTarget === selectedLabel)) {
+      return;
+    }
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-hover",
+        data: null,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 点击事件处理
+  function handleClick(e) {
+    var target = e.target;
+    if (!target || target === overlay || target === highlightBox || target === tagLabel || target === selectedBox || target === selectedLabel) {
+      return;
+    }
+
+    // 避免处理 html 和 body 元素
+    if (target === document.documentElement || target === document.body) {
+      return;
+    }
+
+    // 检查是否是交互元素，这些元素需要保留默认行为
+    var isInteractiveElement = ['input', 'textarea', 'select', 'button', 'a'].includes(target.tagName.toLowerCase());
+
+    // 如果高亮功能启用，对于非交互元素阻止默认行为和事件传播
+    if (highlightEnabled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    var rect = target.getBoundingClientRect();
+    var selector = getElementSelector(target);
+    var text = getElementText(target);
+    var attributes = getElementAttributes(target);
+    console.log("Element clicked:", {
+      tagName: target.tagName,
+      selector: selector,
+      rect: rect
+    });
+
+    // 立即更新选中高亮
+    updateSelectedHighlight(target);
+
+    // 隐藏悬停高亮，因为现在是选中状态
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    var elementInfo = {
+      tagName: target.tagName.toLowerCase(),
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        x: rect.x,
+        y: rect.y
+      },
+      selector: selector,
+      text: text,
+      attributes: attributes,
+      url: window.location.href,
+      path: window.location.pathname,
+      timestamp: Date.now()
+    };
+    try {
+      window.parent.postMessage({
+        type: "iframe-element-click",
+        data: elementInfo,
+        source: "iframe-highlight-injector"
+      }, "*");
+    } catch (error) {
+      console.warn("无法发送消息到父窗口:", error);
+    }
+  }
+
+  // 监听来自父窗口的消息
+  function handleParentMessage(event) {
+    console.log("Received message from parent:", event.data);
+    if (event.data.type === "iframe-highlight-toggle") {
+      var enabled = event.data.enabled;
+      console.log("Highlight toggle:", enabled);
+      if (enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "enable-iframe-highlight") {
+      console.log("Enable iframe highlight");
+      enableHighlight();
+    } else if (event.data.type === "disable-iframe-highlight") {
+      console.log("Disable iframe highlight");
+      disableHighlight();
+    } else if (event.data.type === "toggle-iframe-highlight") {
+      var _enabled = event.data.enabled !== undefined ? event.data.enabled : !highlightEnabled;
+      console.log("Toggle iframe highlight to:", _enabled);
+      if (_enabled) {
+        enableHighlight();
+      } else {
+        disableHighlight();
+      }
+    } else if (event.data.type === "update-selected-element") {
+      var selector = event.data.selector;
+      console.log("Update selected element with selector:", selector);
+      if (selector) {
+        try {
+          var element = document.querySelector(selector);
+          console.log("Found element by selector:", element);
+          updateSelectedHighlight(element);
+        } catch (error) {
+          console.warn("Failed to select element:", error);
+          updateSelectedHighlight(null);
+        }
+      } else {
+        updateSelectedHighlight(null);
+      }
+    } else if (event.data.type === "clear-selected-element") {
+      console.log("Clear selected element");
+      updateSelectedHighlight(null);
+    }
+  }
+
+  // 启用高亮功能
+  function enableHighlight() {
+    console.log("Enabling highlight");
+    document.addEventListener("mouseover", handleMouseOver, true);
+    document.addEventListener("mouseout", handleMouseOut, true);
+    document.addEventListener("click", handleClick, true);
+    highlightEnabled = true;
+    overlay.style.display = "block";
+  }
+
+  // 禁用高亮功能
+  function disableHighlight() {
+    console.log("Disabling highlight");
+    highlightEnabled = false;
+    // 保持事件监听器，但通过 highlightEnabled 变量控制行为
+    // 这样可以保留选中状态的显示
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    // 不隐藏 selectedBox 和 selectedLabel，保留选中状态
+  }
+
+  // 完全禁用高亮功能（移除所有监听器）
+  function fullyDisableHighlight() {
+    console.log("Fully disabling highlight");
+    highlightEnabled = false;
+    document.removeEventListener("mouseover", handleMouseOver, true);
+    document.removeEventListener("mouseout", handleMouseOut, true);
+    document.removeEventListener("click", handleClick, true);
+    overlay.style.display = "none";
+    highlightBox.style.display = "none";
+    tagLabel.style.display = "none";
+    selectedBox.style.display = "none";
+    selectedLabel.style.display = "none";
+  }
+
+  // 添加事件监听
+  enableHighlight();
+  window.addEventListener("message", handleParentMessage);
+
+  // 暴露全局函数供外部调用
+  window.__iframeHighlightControl = {
+    enable: enableHighlight,
+    disable: disableHighlight,
+    fullyDisable: fullyDisableHighlight,
+    isEnabled: function isEnabled() {
+      return highlightEnabled;
+    },
+    getSelectedElement: function getSelectedElement() {
+      return selectedElement;
+    },
+    updateSelected: updateSelectedHighlight,
+    // 通过消息发送开关控制
+    sendToggleMessage: function sendToggleMessage(enabled) {
+      window.parent.postMessage({
+        type: 'iframe-highlight-status',
+        enabled: enabled || highlightEnabled,
+        source: 'iframe-highlight-injector'
+      }, '*');
+    }
+  };
+
+  // 通知父窗口脚本已加载
+  try {
+    window.parent.postMessage({
+      type: "iframe-highlight-ready",
+      data: {
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        timestamp: Date.now()
+      },
+      source: "iframe-highlight-injector"
+    }, "*");
+  } catch (error) {
+    console.warn("无法发送就绪消息到父窗口:", error);
+  }
+
+  // 清理函数
+  window.__iframeHighlightCleanup = function () {
+    fullyDisableHighlight();
+    window.removeEventListener("message", handleParentMessage);
+    if (overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
+    delete window.__iframeHighlightInitialized;
+    delete window.__iframeHighlightCleanup;
+  };
+})();
+</script>
+</body>
+</html>
