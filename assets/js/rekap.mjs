@@ -1,6 +1,6 @@
-import { allKecamatanData, loadAllKecamatanData } from './data.js';
-import { formatDate } from './utils.js';
-import { BATAS_LAYAK } from './indikator.js';
+import { allKecamatanData, loadAllKecamatanData } from './data.mjs';
+import { formatDate } from './utils.mjs';
+import { BATAS_LAYAK } from './indikator.mjs';
 
 export async function setupRekap() {
   await renderTable();
@@ -43,7 +43,7 @@ window.exportExcel = async () => {
     Skor: ${val.total_nilai}, Status: ${val.total_nilai >= BATAS_LAYAK ? 'LAYAK' : 'BELUM LAYAK'}
   }));
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(data);
+  const ws = XLSX.utils.mjson_to_sheet(data);
   XLSX.utils.book_append_sheet(wb, ws, "Rekap");
   XLSX.writeFile(wb, "KAPASDA_Rekapitulasi.xlsx");
 };

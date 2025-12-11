@@ -1,7 +1,7 @@
-import { supabase, userKecamatanId, userRole } from './auth.js';
-import { dataPembanding, saveKecamatanData, loadAllKecamatanData } from './data.js';
-import { INDIKATORS, BATAS_LAYAK } from './indikator.js';
-import { showToast, formatNumber } from './utils.js';
+import { supabase, userKecamatanId, userRole } from './auth.mjs';
+import { dataPembanding, saveKecamatanData, loadAllKecamatanData } from './data.mjs';
+import { INDIKATORS, BATAS_LAYAK } from './indikator.mjs';
+import { showToast, formatNumber } from './utils.mjs';
 
 let currentKecamatanId = null;
 

@@ -1,7 +1,7 @@
-import { allKecamatanData, loadAllKecamatanData, dataPembanding } from './data.js';
-import { userRole } from './auth.js';
-import { formatDate } from './utils.js';
-import { BATAS_LAYAK } from './indikator.js';
+import { allKecamatanData, loadAllKecamatanData, dataPembanding } from './data.mjs';
+import { userRole } from './auth.mjs';
+import { formatDate } from './utils.mjs';
+import { BATAS_LAYAK } from './indikator.mjs';
 
 let chartRanking = null;
 let chartPie = null;

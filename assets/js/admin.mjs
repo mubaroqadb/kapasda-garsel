@@ -1,7 +1,7 @@
-import { supabase, userRole } from './auth.js';
-import { dataPembanding, loadDataPembanding, saveDataPembanding, recalculateAllKecamatan } from './data.js';
-import { showToast } from './utils.js';
-import { INDIKATORS } from './indikator.js';
+import { supabase, userRole } from './auth.mjs';
+import { dataPembanding, loadDataPembanding, saveDataPembanding, recalculateAllKecamatan } from './data.mjs';
+import { showToast } from './utils.mjs';
+import { INDIKATORS } from './indikator.mjs';
 
 export async function setupAdmin() {
   if (userRole !== 'admin') return;

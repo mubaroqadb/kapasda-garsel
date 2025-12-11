@@ -1,8 +1,8 @@
-import { checkAuth, logout } from './auth.js';
-import { loadDashboard } from './dashboard.js';
-import { setupForm } from './form.js';
-import { setupRekap } from './rekap.js';
-import { setupAdmin } from './admin.js';
+import { checkAuth, logout } from './auth.mjs';
+import { loadDashboard } from './dashboard.mjs';
+import { setupForm } from './form.mjs';
+import { setupRekap } from './rekap.mjs';
+import { setupAdmin } from './admin.mjs';
 
 export async function initApp() {
   const authOk = await checkAuth();
