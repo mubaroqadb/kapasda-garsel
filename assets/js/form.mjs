@@ -150,7 +150,19 @@ async function loadFormData() {
     return;
   }
   
-  const savedData = allKecamatanData[currentKecamatanId]?.data || {};
+  // Handle case when allKecamatanData is not available or empty
+  let savedData = {};
+  try {
+    if (typeof allKecamatanData === 'object' && allKecamatanData !== null) {
+      savedData = allKecamatanData[currentKecamatanId]?.data || {};
+    } else {
+      console.warn('allKecamatanData is not properly initialized, using empty object');
+      savedData = {};
+    }
+  } catch (err) {
+    console.error('Error accessing allKecamatanData:', err);
+    savedData = {};
+  }
 
   const container = document.getElementById('formIndicators');
   container.innerHTML = '';
