@@ -26,5 +26,12 @@ export async function initApp() {
 
   document.getElementById('btnLogout').addEventListener('click', logout);
 
-  document.getElementById('loading').remove();
+  // Sembunyikan loading setelah semua selesai
+  setTimeout(() => {
+    const loadingEl = document.getElementById('loading');
+    if (loadingEl) {
+      loadingEl.style.opacity = '0';
+      setTimeout(() => loadingEl.remove(), 300);
+    }
+  }, 500);
 }
