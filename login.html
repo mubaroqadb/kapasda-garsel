@@ -8,85 +8,12 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<<<<<<< HEAD
 <body class="bg-gradient-to-br from-blue-600 to-indigo-800 min-h-screen flex items-center justify-center">
   <div class="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md">
     <div class="text-center mb-8">
       <i class="fas fa-chart-line text-6xl text-blue-600 mb-4"></i>
       <h1 class="text-3xl font-bold text-gray-800">KAPASDA</h1>
       <p class="text-gray-600">Login untuk melanjutkan</p>
-=======
-<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md fade-in">
-        <!-- Logo & Title -->
-        <div class="text-center mb-8">
-            <div class="inline-block bg-white rounded-full p-4 mb-4 shadow-lg">
-                <i class="fas fa-chart-line text-5xl text-blue-600"></i>
-            </div>
-            <h1 class="text-3xl font-bold text-white mb-2">KAPASDA</h1>
-            <p class="text-blue-100">Penilaian Kapasitas Daerah CDP</p>
-            <p class="text-blue-100 text-sm">Kabupaten Garut Selatan</p>
-        </div>
-
-        <!-- Login Card -->
-        <div class="bg-white rounded-2xl shadow-2xl p-8 card-shadow">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Masuk ke Aplikasi</h2>
-            
-            <!-- Alert -->
-            <div id="alertBox" class="hidden mb-4 p-4 rounded-lg"></div>
-
-            <!-- Login Form -->
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label class="block text-gray-700 text-sm font-medium mb-2">
-                        <i class="fas fa-envelope mr-2"></i>Email
-                    </label>
-                    <input 
-                        type="email" 
-                        id="emailInput"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                        placeholder="email@example.com"
-                        required
-                    >
-                </div>
-                <div>
-                    <label class="block text-gray-700 text-sm font-medium mb-2">
-                        <i class="fas fa-lock mr-2"></i>Password
-                    </label>
-                    <div class="relative">
-                        <input 
-                            type="password" 
-                            id="passwordInput"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                            placeholder="••••••••"
-                            required
-                        >
-                        <button 
-                            type="button" 
-                            id="togglePassword"
-                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        >
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-                <button 
-                    type="submit" 
-                    id="loginButton"
-                    class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl"
-                >
-                    <i class="fas fa-sign-in-alt mr-2"></i>Masuk
-                </button>
-            </form>
-
-
-        </div>
-
-        <!-- Footer -->
-        <div class="text-center mt-6 text-blue-100 text-sm">
-            <p>&copy; 2025 KAPASDA Garut Selatan</p>
-        </div>
->>>>>>> a1c98db2e8e4d367b9410deb1e356c87f12281dd
     </div>
     <div class="space-y-5">
       <input type="email" id="email" placeholder="Email" class="w-full px-5 py-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-300 focus:border-blue-500 transition">
@@ -98,7 +25,6 @@
     <p class="text-center text-sm text-gray-500 mt-6">© 2025 Pemerintah Kab. Garut</p>
   </div>
 
-<<<<<<< HEAD
   <script>
     const supabase = window.supabase.createClient(
       'https://vedwbuflttjrnhueymer.supabase.co',
@@ -116,100 +42,5 @@
       }
     });
   </script>
-=======
-    <script>
-        // Initialize Supabase
-        const SUPABASE_URL = 'https://vedwbuflttjrnhueymer.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZHdidWZsdHRqcm5odWV5bWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDY3MDIsImV4cCI6MjA4MDE4MjcwMn0.qqo9_4u8rRRDRh74Jq-PGyc-0md_fO5TgQl9Wap44kE';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // Check if already logged in
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                window.location.href = 'index.html';
-            }
-        });
-
-        // Toggle password visibility
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const passwordInput = document.getElementById('passwordInput');
-            const icon = this.querySelector('i');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        });
-
-        // Show alert
-        function showAlert(message, type = 'error') {
-            const alertBox = document.getElementById('alertBox');
-            alertBox.className = `mb-4 p-4 rounded-lg ${type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-green-50 text-green-800 border border-green-200'}`;
-            alertBox.innerHTML = `
-                <div class="flex items-center">
-                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'} mr-2"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-            alertBox.classList.remove('hidden');
-            
-            if (type === 'success') {
-                setTimeout(() => alertBox.classList.add('hidden'), 3000);
-            }
-        }
-
-        // Handle login form submission
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('emailInput').value;
-            const password = document.getElementById('passwordInput').value;
-            const loginButton = document.getElementById('loginButton');
-            
-            // Disable button and show loading
-            loginButton.disabled = true;
-            loginButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
-            
-            try {
-                // Sign in with Supabase
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-                
-                if (error) throw error;
-                
-                // Get user profile to check role
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('user_id', data.user.id)
-                    .single();
-                
-                if (profileError) throw profileError;
-                
-                showAlert('Login berhasil! Mengalihkan...', 'success');
-                
-                // Redirect to main app
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
-                
-            } catch (error) {
-                console.error('Login error:', error);
-                showAlert(error.message || 'Login gagal. Periksa email dan password Anda.');
-                
-                // Re-enable button
-                loginButton.disabled = false;
-                loginButton.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Masuk';
-            }
-        });
-    </script>
->>>>>>> a1c98db2e8e4d367b9410deb1e356c87f12281dd
 </body>
 </html>
