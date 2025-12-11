@@ -1,183 +1,736 @@
-// assets/js/indikator.mjs
+// Modern indicator module for KAPASDA with enhanced scoring and validation
 
-export const BATAS_LAYAK = 400;
+import { dataPembanding } from './data.mjs';
+import { showToast, formatNumber, validateNumber } from './utils.mjs';
 
-// INI ADALAH DATA MENTAH — persis dari kode awal Anda
-const INDICATORS = [
+// Enhanced indicator definitions with validation rules
+export const INDIKATORS = [
   {
-    no: 1, nama: 'Lokasi Ibukota',
+    no: 1,
+    nama: "Kondisi Geografis",
     subs: [
-      { id: '1.1', nama: 'Rasio ketimpangan jarak (batas terdekat/terjauh dengan ibukota)', 
-        pembanding: 55, bobot: 2, type: 'ratio',
-        skorFunc: (r) => r === '' ? 0 : r <= 0.2 ? 1 : r <= 0.4 ? 2 : r <= 0.6 ? 3 : r <= 0.8 ? 4 : 5 },
-      { id: '1.2', nama: 'Ketersediaan lahan pusat pemerintahan (ha)', 
-        pembanding: 50, bobot: 2, type: 'direct',
-        skorFunc: (v) => v === '' ? 0 : v <= 30 ? 1 : v <= 40 ? 2 : v <= 50 ? 3 : v <= 60 ? 4 : 5 }
+      {
+        id: "1.1",
+        nama: "Luas Wilayah",
+        bobot: 10,
+        type: "semakin_baik",
+        pembanding: 100,
+        satuan: "km²",
+        min: 0,
+        max: 10000,
+        required: true,
+        description: "Total luas wilayah kecamatan dalam kilometer persegi",
+        validation: {
+          pattern: /^\d+(\.\d{1,2})?$/,
+          message: "Masukkan angka yang valid (contoh: 123.45)"
+        }
+      },
+      {
+        id: "1.2",
+        nama: "Batas Wilayah",
+        bobot: 5,
+        type: "semakin_baik",
+        pembanding: 8,
+        satuan: "desa/kota",
+        min: 0,
+        max: 20,
+        required: true,
+        description: "Jumlah batas wilayah dengan desa/kota lain",
+        validation: {
+          pattern: /^\d+$/,
+          message: "Masukkan angka bulat yang valid"
+        }
+      }
     ]
   },
   {
-    no: 2, nama: 'Hidrografi',
+    no: 2,
+    nama: "Kondisi Demografi",
     subs: [
-      { id: '2.1', nama: 'Potensi air permukaan dan air tanah (liter/detik)', 
-        pembanding: 4000, bobot: 1, type: 'direct',
-        skorFunc: (v) => v === '' ? 0 : v <= 1000 ? 1 : v <= 2000 ? 2 : v <= 3000 ? 3 : v <= 4000 ? 4 : 5 },
-      { id: '2.2', nama: 'Ketersediaan air baku untuk penduduk & ekonomi (%)', 
-        pembanding: 40, bobot: 1, type: 'direct',
-        skorFunc: (v) => v === '' ? 0 : v <= 10 ? 1 : v <= 20 ? 2 : v <= 30 ? 3 : v <= 40 ? 4 : 5 }
+      {
+        id: "2.1",
+        nama: "Jumlah Penduduk",
+        bobot: 15,
+        type: "semakin_baik",
+        pembanding: 50000,
+        satuan: "jiwa",
+        min: 1000,
+        max: 200000,
+        required: true,
+        description: "Total jumlah penduduk kecamatan",
+        validation: {
+          pattern: /^\d+$/,
+          message: "Masukkan angka bulat yang valid"
+        }
+      },
+      {
+        id: "2.2",
+        nama: "Kepadatan Penduduk",
+        bobot: 10,
+        type: "optimal",
+        pembanding: 500,
+        satuan: "jiwa/km²",
+        min: 50,
+        max: 2000,
+        required: true,
+        optimalMin: 300,
+        optimalMax: 700,
+        description: "Kepadatan penduduk per kilometer persegi",
+        validation: {
+          pattern: /^\d+(\.\d{1,2})?$/,
+          message: "Masukkan angka yang valid (contoh: 123.45)"
+        }
+      },
+      {
+        id: "2.3",
+        nama: "Tingkat Pertumbuhan",
+        bobot: 5,
+        type: "optimal",
+        pembanding: 2,
+        satuan: "%",
+        min: -5,
+        max: 10,
+        required: true,
+        optimalMin: 1,
+        optimalMax: 3,
+        description: "Tingkat pertumbuhan penduduk per tahun",
+        validation: {
+          pattern: /^-?\d+(\.\d{1,2})?$/,
+          message: "Masukkan angka yang valid (contoh: 2.5)"
+        }
+      }
     ]
   },
   {
-    no: 3, nama: 'Kerawanan Bencana',
+    no: 3,
+    nama: "Ketersediaan Sarana dan Prasarana",
     subs: [
-      { id: '3.1', nama: 'Indeks Risiko Bencana Indonesia (IRBI) - Kab. Induk', 
-        pembanding: 72, bobot: 1, type: 'direct',
-        skorFunc: (v) => v === '' ? 0 : v < 72 ? 5 : v <= 144 ? 3 : 1 },
-      { id: '3.2', nama: 'Jumlah kejadian bencana alam 10 tahun terakhir (kali)', 
-        pembanding: 200, bobot: 2, type: 'direct',
-        skorFunc: (v) => v === '' ? 0 : v === 0 ? 5 : v <= 5 ? 4 : v <= 10 ? 3 : v <= 15 ? 2 : 1 }
+      {
+        id: "3.1",
+        nama: "Jumlah Sekolah",
+        bobot: 10,
+        type: "semakin_baik",
+        pembanding: 20,
+        satuan: "unit",
+        min: 0,
+        max: 100,
+        required: true,
+        description: "Total jumlah sekolah (SD, SMP, SMA)",
+        validation: {
+          pattern: /^\d+$/,
+          message: "Masukkan angka bulat yang valid"
+        }
+      },
+      {
+        id: "3.2",
+        nama: "Jumlah Puskesmas",
+        bobot: 8,
+        type: "semakin_baik",
+        pembanding: 5,
+        satuan: "unit",
+        min: 0,
+        max: 20,
+        required: true,
+        description: "Total jumlah puskesmas dan pembantunya",
+        validation: {
+          pattern: /^\d+$/,
+          message: "Masukkan angka bulat yang valid"
+        }
+      },
+      {
+        id: "3.3",
+        nama: "Jumlah Pasar",
+        bobot: 7,
+        type: "semakin_baik",
+        pembanding: 3,
+        satuan: "unit",
+        min: 0,
+        max: 15,
+        required: true,
+        description: "Total jumlah pasar tradisional dan modern",
+        validation: {
+          pattern: /^\d+$/,
+          message: "Masukkan angka bulat yang valid"
+        }
+      }
     ]
   },
   {
-    no: 4, nama: 'Kualitas SDM',
+    no: 4,
+    nama: "Kondisi Ekonomi",
     subs: [
-      { id: '4.1', nama: 'Rasio Angka Lama Sekolah (RLS) CDP vs Pulau Jawa', 
-        pembanding: 8.61, bobot: 4, type: 'ratio',
-        skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
-      { id: '4.2', nama: 'Rasio APK Pendidikan Menengah Atas vs Pulau Jawa', 
-        pembanding: 82.43, bobot: 4, type: 'ratio',
-        skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
-      { id: '4.3', nama: 'Rasio APK Pendidikan Dasar vs Pulau Jawa', 
-        pembanding: 109.52, bobot: 4, type: 'ratio',
-        skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 }
+      {
+        id: "4.1",
+        nama: "PDRB Per Kapita",
+        bobot: 15,
+        type: "semakin_baik",
+        pembanding: 50000000,
+        satuan: "rupiah",
+        min: 10000000,
+        max: 200000000,
+        required: true,
+        description: "Produk Domestik Regional Bruto per kapita",
+        validation: {
+          pattern: /^\d+$/,
+          message: "Masukkan angka bulat yang valid"
+        }
+      },
+      {
+        id: "4.2",
+        nama: "Tingkat Pengangguran",
+        bobot: 10,
+        type: "semakin_buruk",
+        pembanding: 5,
+        satuan: "%",
+        min: 0,
+        max: 30,
+        required: true,
+        description: "Tingkat pengangguran terbuka",
+        validation: {
+          pattern: /^\d+(\.\d{1,2})?$/,
+          message: "Masukkan angka yang valid (contoh: 5.2)"
+        }
+      },
+      {
+        id: "4.3",
+        nama: "Indeks Pembangunan",
+        bobot: 5,
+        type: "semakin_baik",
+        pembanding: 75,
+        satuan: "poin",
+        min: 0,
+        max: 100,
+        required: true,
+        description: "Indeks Pembangunan Manusia (IPM)",
+        validation: {
+          pattern: /^\d+(\.\d{1,2})?$/,
+          message: "Masukkan angka yang valid (contoh: 75.5)"
+        }
+      }
     ]
   },
   {
-    no: 5, nama: 'Distribusi Penduduk',
+    no: 5,
+    nama: "Aksesibilitas dan Konektivitas",
     subs: [
-      { id: '5.1', nama: 'Rasio kepadatan penduduk CDP vs rata-rata Pulau Jawa', 
-        pembanding: 1117, bobot: 3, type: 'ratio',
-        skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 }
-    ]
-  },
-  {
-    no: 6, nama: 'Tindakan Kriminal Umum',
-    subs: [
-      { id: '6.1', nama: 'Rasio kriminal per 10.000 penduduk CDP vs Pulau Jawa', 
-        pembanding: 5.2, bobot: 2, type: 'ratio',
-        skorFunc: (r) => r === '' ? 0 : r >= 1 ? 1 : r >= 0.9 ? 2 : r >= 0.8 ? 3 : r >= 0.7 ? 4 : 5 }
-    ]
-  },
-  {
-    no: 7, nama: 'Konflik Sosial',
-    subs: [
-      { id: '7.1', nama: 'Jumlah konflik sosial di CDP (kali)', 
-        pembanding: 2, bobot: 2, type: 'direct',
-        skorFunc: (v) => v === '' ? 0 : v === 0 ? 5 : v <= 5 ? 4 : v <= 10 ? 3 : v <= 15 ? 2 : 1 }
-    ]
-  },
-  {
-    no: 8, nama: 'Partisipasi Masyarakat dalam Pemilu',
-    subs: [
-      { id: '8.1', nama: 'Persentase partisipasi pemilih (%)', 
-        pembanding: 70, bobot: 3, type: 'direct',
-        skorFunc: (v) => v === '' ? 0 : v > 70 ? 5 : v >= 60 ? 4 : v >= 50 ? 3 : v >= 40 ? 2 : 1 }
-    ]
-  },
-  {
-    no: 9, nama: 'Kohesivitas Sosial',
-    subs: [
-      { id: '9.1', nama: 'Jumlah etnik/subetnik di CDP', 
-        pembanding: 1, bobot: 2, type: 'direct',
-        skorFunc: (v) => v === '' ? 0 : v <= 1 ? 5 : v <= 3 ? 4 : v <= 5 ? 3 : v <= 7 ? 2 : 1 }
-    ]
-  },
-  {
-    no: 10, nama: 'Organisasi Kemasyarakatan',
-    subs: [
-      { id: '10.1', nama: 'Jumlah ormas terdaftar di CDP', 
-        pembanding: 40, bobot: 3, type: 'direct',
-        skorFunc: (v) => v === '' ? 0 : v > 40 ? 5 : v >= 31 ? 4 : v >= 21 ? 3 : v >= 11 ? 2 : 1 }
-    ]
-  },
-  {
-    no: 11, nama: 'Pertumbuhan Ekonomi',
-    subs: [
-      { id: '11.1', nama: 'Rasio pertumbuhan ekonomi 5 tahun CDP vs Pulau Jawa', pembanding: 5.43, bobot: 3, type: 'ratio', skorFunc: r=>r===''?0:r>=1?5:r>=0.9?4:r>=0.8?3:r>=0.7?2:1 },
-      { id: '11.2', nama: 'Rasio pendapatan perkapita CDP vs Pulau Jawa (Rp)', pembanding: 45000000, bobot: 3, type: 'ratio', skorFunc: r=>r===''?0:r>=1?5:r>=0.9?4:r>=0.8?3:r>=0.7?2:1 },
-      { id: '11.3', nama: 'Rasio IPM CDP vs Pulau Jawa', pembanding: 74.24, bobot: 3, type: 'ratio', skorFunc: r=>r===''?0:r>=1?5:r>=0.9?4:r>=0.8?3:r>=0.7?2:1 },
-      { id: '11.4', nama: 'Rasio angka kemiskinan CDP vs Pulau Jawa (%)', pembanding: 7.83, bobot: 3, type: 'ratio', skorFunc: r=>r===''?0:r<0.7?5:r<0.8?4:r<0.9?3:r<1?2:1 }
-    ]
-  },
-  {
-    no: 12, nama: 'Potensi Unggulan Daerah',
-    subs: [
-      { id: '12.1', nama: 'Rasio PDRB sektor pertanian perkapita vs PDB nasional', pembanding: 1, bobot: 1, type: 'direct', skorFunc: v=>v===''?0:v>=1?5:v>=0.9?4:v>=0.8?3:v>=0.7?2:1 },
-      { id: '12.2', nama: 'Rasio PDRB sektor industri perkapita vs rata-rata Pulau Jawa', pembanding: 1, bobot: 1, type: 'direct', skorFunc: v=>v===''?0:v>=1?5:v>=0.9?4:v>=0.8?3:v>=0.7?2:1 },
-      { id: '12.3', nama: 'Rasio PDRB sektor perdagangan, hotel, restoran perkapita', pembanding: 1, bobot: 2, type: 'direct', skorFunc: v=>v===''?0:v>=1?5:v>=0.9?4:v>=0.8?3:v>=0.7?2:1 },
-      { id: '12.4', nama: 'Rasio PDRB sektor pengangkutan & komunikasi perkapita', pembanding: 1, bobot: 1, type: 'direct', skorFunc: v=>v===''?0:v>=1?5:v>=0.9?4:v>=0.8?3:v>=0.7?2:1 },
-      { id: '12.5', nama: 'Rasio PDRB sektor keuangan & persewaan perkapita', pembanding: 1, bobot: 2, type: 'direct', skorFunc: v=>v===''?0:v>=1?5:v>=0.9?4:v>=0.8?3:v>=0.7?2:1 },
-      { id: '12.6', nama: 'Rasio PDRB sektor jasa perkapita', pembanding: 1, bobot: 2, type: 'direct', skorFunc: v=>v===''?0:v>=1?5:v>=0.9?4:v>=0.8?3:v>=0.7?2:1 }
-    ]
-  },
-  {
-    no: 13, nama: 'Kapasitas PAD Induk',
-    subs: [
-      { id: '13.1', nama: 'Rasio PAD induk terhadap total pendapatan daerah induk', pembanding: 4780000000000, bobot: 5, type: 'ratio', skorFunc: r=>r===''?0:r>=1?5:r>=0.9?4:r>=0.8?3:r>=0.7?2:1 }
-    ]
-  },
-  {
-    no: 14, nama: 'Potensi PAD CDP',
-    subs: [
-      { id: '14.1', nama: 'Rasio PAD CDP terhadap total PAD induk', pembanding: 538000000000, bobot: 8, type: 'ratio', skorFunc: r=>r===''?0:r>=1?1:r>=0.9?2:r>=0.8?3:r>=0.7?4:5 }
-    ]
-  },
-  {
-    no: 15, nama: 'Pengelolaan Keuangan & Aset',
-    subs: [
-      { id: '15.1', nama: 'Jumlah opini WTP BPK dalam 5 tahun terakhir (1-5)', pembanding: 5, bobot: 4, type: 'direct', skorFunc: v=>v===''?0:v>=5?5:v>=4?4:v>=3?3:v>=2?2:1 }
-    ]
-  },
-  {
-    no: 16, nama: 'Aksesibilitas Pelayanan Dasar Pendidikan',
-    subs: [
-      { id: '16.1', nama: 'Rata-rata jumlah murid per ruang belajar SD', pembanding: 28, bobot: 2, type: 'direct', skorFunc: v=>v===''?0:v<=32?1:v<=35?2:v<=39?3:v<=42?4:5 },
-      { id: '16.2', nama: 'Rata-rata jumlah murid per ruang belajar SMP', pembanding: 32, bobot: 2, type: 'direct', skorFunc: v=>v===''?0:v<=32?1:v<=35?2:v<=39?3:v<=42?4:5 },
-      { id: '16.3', nama: 'Rata-rata jumlah murid per ruang belajar SMA/SMK', pembanding: 36, bobot: 1, type: 'direct', skorFunc: v=>v===''?0:v<=32?1:v<=35?2:v<=39?3:v<=42?4:5 }
-    ]
-  },
-  {
-    no: 17, nama: 'Aksesibilitas Pelayanan Dasar Kesehatan',
-    subs: [
-      { id: '17.1', nama: 'Rasio penduduk per dokter (jumlah penduduk/dokter)', pembanding: 2500, bobot: 3, type: 'ratio', skorFunc: r=>r===''?0:r<2500?1:r<3000?2:r<3500?3:r<4000?4:5 },
-      { id: '17.2', nama: 'Rasio penduduk per tempat tidur RS/Puskesmas (penduduk/TT)', pembanding: 1000, bobot: 2, type: 'ratio', skorFunc: r=>r===''?0:r<=1000?1:r<=1500?2:r<=2000?3:r<=2500?4:5 }
-    ]
-  },
-  {
-    no: 18, nama: 'Aksesibilitas Pelayanan Dasar Infrastruktur',
-    subs: [
-      { id: '18.1', nama: 'Rasio (panjang jalan/luas) CDP vs rata-rata Pulau Jawa', pembanding: 2850, bobot: 10, type: 'ratio', skorFunc: r=>r===''?0:r>=0.8?1:r>=0.6?2:r>=0.41?3:r>=0.21?4:5 }
-    ]
-  },
-  {
-    no: 19, nama: 'Jumlah Pegawai ASN di Daerah Induk',
-    subs: [
-      { id: '19.1', nama: 'Rasio ASN/penduduk induk vs rata-rata Pulau Jawa', pembanding: 2680000, bobot: 2, type: 'ratio', skorFunc: r=>r===''?0:r>=0.8?1:r>=0.6?2:r>=0.41?3:r>=0.21?4:5 },
-      { id: '19.2', nama: 'Rasio ASN CDP terhadap ASN induk', pembanding: 12500, bobot: 2, type: 'ratio', skorFunc: r=>r===''?0:r>=0.8?1:r>=0.6?2:r>=0.41?3:r>=0.21?4:5 }
-    ]
-  },
-  {
-    no: 20, nama: 'Rancangan RTRW Daerah Persiapan',
-    subs: [
-      { id: '20.1', nama: 'Ketersediaan dokumen RTRW CDP (Skor 1, 3, atau 5)', pembanding: 3, bobot: 2, type: 'direct', skorFunc: v=>v===''?0:v>=5?5:v>=3?3:1 }
+      {
+        id: "5.1",
+        nama: "Panjang Jalan",
+        bobot: 8,
+        type: "semakin_baik",
+        pembanding: 100,
+        satuan: "km",
+        min: 0,
+        max: 500,
+        required: true,
+        description: "Total panjang jalan dalam kilometer",
+        validation: {
+          pattern: /^\d+(\.\d{1,2})?$/,
+          message: "Masukkan angka yang valid (contoh: 123.45)"
+        }
+      },
+      {
+        id: "5.2",
+        nama: "Ketersediaan Transportasi",
+        bobot: 7,
+        type: "semakin_baik",
+        pembanding: 10,
+        satuan: "jenis",
+        min: 0,
+        max: 20,
+        required: true,
+        description: "Jenis transportasi umum yang tersedia",
+        validation: {
+          pattern: /^\d+$/,
+          message: "Masukkan angka bulat yang valid"
+        }
+      },
+      {
+        id: "5.3",
+        nama: "Akses Internet",
+        bobot: 5,
+        type: "semakin_baik",
+        pembanding: 80,
+        satuan: "%",
+        min: 0,
+        max: 100,
+        required: true,
+        description: "Persentase wilayah dengan akses internet",
+        validation: {
+          pattern: /^\d+(\.\d{1,2})?$/,
+          message: "Masukkan angka yang valid (contoh: 75.5)"
+        }
+      }
     ]
   }
 ];
 
-// INI YANG ANDA TUNGGU — KONVERSI skorFunc → skor
-export const INDIKATORS = INDICATORS.map(group => ({
-  ...group,
-  subs: group.subs.map(sub => ({
-    ...sub,
-    skor: sub.skorFunc
-  }))
-}));
+// Scoring configuration
+const SCORING_CONFIG = {
+  maxScore: 100,
+  minScore: 0,
+  decimalPlaces: 2,
+  roundingMethod: 'round',
+  weightNormalization: true
+};
+
+// Validation state
+const validationState = {
+  errors: {},
+  warnings: {},
+  isValid: false,
+  isDirty: false
+};
+
+/**
+ * Modern scoring function with enhanced logic
+ */
+export function hitungSkor(nilai, pembanding, type, optimalMin = null, optimalMax = null) {
+  if (!validateNumber(nilai) || !validateNumber(pembanding) || pembanding === 0) {
+    return 0;
+  }
+
+  const numNilai = parseFloat(nilai);
+  const numPembanding = parseFloat(pembanding);
+
+  try {
+    let skor;
+
+    switch (type) {
+      case 'semakin_baik':
+        skor = (numNilai / numPembanding) * 100;
+        break;
+
+      case 'semakin_buruk':
+        skor = (1 - (numNilai / numPembanding)) * 100;
+        break;
+
+      case 'optimal':
+        if (optimalMin !== null && optimalMax !== null) {
+          if (numNilai >= optimalMin && numNilai <= optimalMax) {
+            skor = 100;
+          } else {
+            const distance = Math.min(
+              Math.abs(numNilai - optimalMin),
+              Math.abs(numNilai - optimalMax)
+            );
+            const maxDistance = Math.max(
+              Math.abs(optimalMin),
+              Math.abs(optimalMax)
+            );
+            skor = Math.max(0, 100 - (distance / maxDistance) * 100);
+          }
+        } else {
+          // Fallback to semakin_baik if optimal range not specified
+          skor = (numNilai / numPembanding) * 100;
+        }
+        break;
+
+      default:
+        console.warn(`Unknown scoring type: ${type}`);
+        skor = (numNilai / numPembanding) * 100;
+    }
+
+    // Apply scoring configuration
+    skor = Math.max(SCORING_CONFIG.minScore, Math.min(SCORING_CONFIG.maxScore, skor));
+    skor = Math.round(skor * Math.pow(10, SCORING_CONFIG.decimalPlaces)) / Math.pow(10, SCORING_CONFIG.decimalPlaces);
+
+    return skor;
+
+  } catch (error) {
+    console.error('Error calculating score:', error);
+    return 0;
+  }
+}
+
+/**
+ * Enhanced validation for indicator values
+ */
+export function validateIndicatorValue(value, indicator) {
+  const errors = [];
+  const warnings = [];
+
+  // Check if required
+  if (indicator.required && (value === null || value === undefined || value === '')) {
+    errors.push(`${indicator.nama} wajib diisi`);
+    return { isValid: false, errors, warnings };
+  }
+
+  // Skip validation if empty and not required
+  if (!value && value !== 0) {
+    return { isValid: true, errors, warnings };
+  }
+
+  const numValue = parseFloat(value);
+
+  // Check if valid number
+  if (isNaN(numValue)) {
+    errors.push(`${indicator.nama} harus berupa angka yang valid`);
+    return { isValid: false, errors, warnings };
+  }
+
+  // Check pattern
+  if (indicator.validation && indicator.validation.pattern) {
+    if (!indicator.validation.pattern.test(value.toString())) {
+      errors.push(indicator.validation.message || `${indicator.nama} format tidak valid`);
+    }
+  }
+
+  // Check range
+  if (indicator.min !== undefined && numValue < indicator.min) {
+    errors.push(`${indicator.nama} minimal ${formatNumber(indicator.min)} ${indicator.satuan}`);
+  }
+
+  if (indicator.max !== undefined && numValue > indicator.max) {
+    errors.push(`${indicator.nama} maksimal ${formatNumber(indicator.max)} ${indicator.satuan}`);
+  }
+
+  // Check optimal range warnings
+  if (indicator.type === 'optimal' && indicator.optimalMin !== undefined && indicator.optimalMax !== undefined) {
+    if (numValue < indicator.optimalMin) {
+      warnings.push(`${indicator.nama} di bawah rentang optimal (${formatNumber(indicator.optimalMin)} - ${formatNumber(indicator.optimalMax)} ${indicator.satuan})`);
+    } else if (numValue > indicator.optimalMax) {
+      warnings.push(`${indicator.nama} di atas rentang optimal (${formatNumber(indicator.optimalMin)} - ${formatNumber(indicator.optimalMax)} ${indicator.satuan})`);
+    }
+  }
+
+  // Check for unusual values
+  if (indicator.pembanding && Math.abs(numValue / indicator.pembanding) > 10) {
+    warnings.push(`${indicator.nama} jauh di atas/bawah nilai pembanding`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+
+/**
+ * Validate entire form data
+ */
+export function validateFormData(formData) {
+  const allErrors = {};
+  const allWarnings = {};
+  let isValid = true;
+
+  INDIKATORS.forEach(group => {
+    group.subs.forEach(sub => {
+      const value = formData[sub.id];
+      const validation = validateIndicatorValue(value, sub);
+
+      if (!validation.isValid) {
+        allErrors[sub.id] = validation.errors;
+        isValid = false;
+      }
+
+      if (validation.warnings.length > 0) {
+        allWarnings[sub.id] = validation.warnings;
+      }
+    });
+  });
+
+  validationState.errors = allErrors;
+  validationState.warnings = allWarnings;
+  validationState.isValid = isValid;
+
+  return {
+    isValid,
+    errors: allErrors,
+    warnings: allWarnings
+  };
+}
+
+/**
+ * Calculate comprehensive score with breakdown
+ */
+export function calculateComprehensiveScore(formData, includeBreakdown = true) {
+  const breakdown = {
+    groups: [],
+    totalScore: 0,
+    totalWeight: 0,
+    maxScore: 0,
+    indicators: {}
+  };
+
+  let totalWeightedScore = 0;
+  let totalWeight = 0;
+
+  INDIKATORS.forEach(group => {
+    const groupBreakdown = {
+      no: group.no,
+      nama: group.nama,
+      subs: [],
+      groupScore: 0,
+      groupWeight: 0,
+      groupMaxScore: 0
+    };
+
+    group.subs.forEach(sub => {
+      const nilai = formData[sub.id] || 0;
+      const pembanding = dataPembanding[sub.id] || sub.pembanding;
+      const skor = hitungSkor(nilai, pembanding, sub.type, sub.optimalMin, sub.optimalMax);
+      const skorTertimbang = skor * (sub.bobot / 100);
+
+      const subBreakdown = {
+        id: sub.id,
+        nama: sub.nama,
+        nilai,
+        pembanding,
+        skor,
+        bobot: sub.bobot,
+        skorTertimbang,
+        type: sub.type,
+        satuan: sub.satuan
+      };
+
+      groupBreakdown.subs.push(subBreakdown);
+      breakdown.indicators[sub.id] = subBreakdown;
+
+      groupBreakdown.groupScore += skorTertimbang;
+      groupBreakdown.groupWeight += sub.bobot;
+      groupBreakdown.groupMaxScore += sub.bobot;
+
+      totalWeightedScore += skorTertimbang;
+      totalWeight += sub.bobot;
+    });
+
+    groupBreakdown.groupScore = Math.round(groupBreakdown.groupScore * 100) / 100;
+    breakdown.groups.push(groupBreakdown);
+  });
+
+  breakdown.totalScore = Math.round(totalWeightedScore * 100) / 100;
+  breakdown.totalWeight = totalWeight;
+  breakdown.maxScore = Math.round(totalWeight * 100) / 100;
+
+  // Calculate percentage
+  breakdown.percentage = breakdown.maxScore > 0 ? Math.round((breakdown.totalScore / breakdown.maxScore) * 100) : 0;
+
+  // Add classification
+  breakdown.classification = getClassification(breakdown.percentage);
+
+  return includeBreakdown ? breakdown : {
+    totalScore: breakdown.totalScore,
+    percentage: breakdown.percentage,
+    classification: breakdown.classification
+  };
+}
+
+/**
+ * Get classification based on score percentage
+ */
+function getClassification(percentage) {
+  if (percentage >= 90) return { level: 'Sangat Baik', color: 'green', icon: 'star' };
+  if (percentage >= 75) return { level: 'Baik', color: 'blue', icon: 'thumbs-up' };
+  if (percentage >= 60) return { level: 'Cukup', color: 'yellow', icon: 'minus' };
+  if (percentage >= 40) return { level: 'Kurang', color: 'orange', icon: 'exclamation' };
+  return { level: 'Sangat Kurang', color: 'red', icon: 'times' };
+}
+
+/**
+ * Get indicator by ID
+ */
+export function getIndicatorById(id) {
+  for (const group of INDIKATORS) {
+    const sub = group.subs.find(s => s.id === id);
+    if (sub) {
+      return { ...sub, groupNo: group.no, groupName: group.nama };
+    }
+  }
+  return null;
+}
+
+/**
+ * Get all indicators in flat format
+ */
+export function getAllIndicators() {
+  return INDIKATORS.flatMap(group => 
+    group.subs.map(sub => ({
+      ...sub,
+      groupNo: group.no,
+      groupName: group.nama
+    }))
+  );
+}
+
+/**
+ * Calculate score for single indicator
+ */
+export function calculateSingleScore(indicatorId, value) {
+  const indicator = getIndicatorById(indicatorId);
+  if (!indicator) return null;
+
+  const pembanding = dataPembanding[indicatorId] || indicator.pembanding;
+  const skor = hitungSkor(value, pembanding, indicator.type, indicator.optimalMin, indicator.optimalMax);
+
+  return {
+    indicatorId,
+    indicatorName: indicator.nama,
+    value,
+    pembanding,
+    skor,
+    type: indicator.type,
+    bobot: indicator.bobot,
+    skorTertimbang: skor * (indicator.bobot / 100)
+  };
+}
+
+/**
+ * Export indicators data
+ */
+export function exportIndicatorsData(format = 'json') {
+  const data = {
+    indicators: INDIKATORS,
+    scoringConfig: SCORING_CONFIG,
+    exportDate: new Date().toISOString()
+  };
+
+  switch (format) {
+    case 'json':
+      return JSON.stringify(data, null, 2);
+    case 'csv':
+      return convertToCSV(data);
+    default:
+      return JSON.stringify(data, null, 2);
+  }
+}
+
+/**
+ * Convert indicators to CSV format
+ */
+function convertToCSV(data) {
+  const headers = ['ID', 'Nama', 'Group', 'Bobot', 'Type', 'Pembanding', 'Min', 'Max', 'Satuan', 'Required'];
+  const rows = data.indicators.flatMap(group => 
+    group.subs.map(sub => [
+      sub.id,
+      sub.nama,
+      group.nama,
+      sub.bobot,
+      sub.type,
+      sub.pembanding,
+      sub.min || '',
+      sub.max || '',
+      sub.satuan,
+      sub.required
+    ])
+  );
+
+  return [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+}
+
+/**
+ * Import indicators data
+ */
+export function importIndicatorsData(jsonData) {
+  try {
+    const data = JSON.parse(jsonData);
+    
+    if (!data.indicators || !Array.isArray(data.indicators)) {
+      throw new Error('Invalid indicators data format');
+    }
+
+    // Validate imported data
+    const validation = validateImportedIndicators(data.indicators);
+    if (!validation.isValid) {
+      throw new Error(`Validation errors: ${validation.errors.join(', ')}`);
+    }
+
+    return data.indicators;
+
+  } catch (error) {
+    console.error('Import indicators error:', error);
+    throw new Error(`Failed to import indicators: ${error.message}`);
+  }
+}
+
+/**
+ * Validate imported indicators
+ */
+function validateImportedIndicators(indicators) {
+  const errors = [];
+  let isValid = true;
+
+  if (!Array.isArray(indicators)) {
+    errors.push('Indicators must be an array');
+    return { isValid: false, errors };
+  }
+
+  indicators.forEach((group, index) => {
+    if (!group.no || !group.nama || !group.subs) {
+      errors.push(`Group ${index + 1} missing required fields`);
+      isValid = false;
+    }
+
+    if (group.subs && Array.isArray(group.subs)) {
+      group.subs.forEach((sub, subIndex) => {
+        if (!sub.id || !sub.nama || sub.bobot === undefined || !sub.type) {
+          errors.push(`Group ${index + 1}, Sub ${subIndex + 1} missing required fields`);
+          isValid = false;
+        }
+      });
+    }
+  });
+
+  return { isValid, errors };
+}
+
+/**
+ * Get scoring statistics
+ */
+export function getScoringStatistics(formData) {
+  const scores = [];
+  const breakdown = calculateComprehensiveScore(formData);
+
+  INDIKATORS.forEach(group => {
+    group.subs.forEach(sub => {
+      const nilai = formData[sub.id] || 0;
+      const pembanding = dataPembanding[sub.id] || sub.pembanding;
+      const skor = hitungSkor(nilai, pembanding, sub.type, sub.optimalMin, sub.optimalMax);
+      scores.push(skor);
+    });
+  });
+
+  const validScores = scores.filter(s => s > 0);
+  
+  return {
+    totalIndicators: scores.length,
+    validScores: validScores.length,
+    averageScore: validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : 0,
+    minScore: validScores.length > 0 ? Math.min(...validScores) : 0,
+    maxScore: validScores.length > 0 ? Math.max(...validScores) : 0,
+    medianScore: validScores.length > 0 ? calculateMedian(validScores) : 0,
+    breakdown
+  };
+}
+
+/**
+ * Calculate median value
+ */
+function calculateMedian(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  
+  return sorted.length % 2 === 0 
+    ? (sorted[mid - 1] + sorted[mid]) / 2 
+    : sorted[mid];
+}
+
+/**
+ * Reset validation state
+ */
+export function resetValidationState() {
+  validationState.errors = {};
+  validationState.warnings = {};
+  validationState.isValid = false;
+  validationState.isDirty = false;
+}
+
+/**
+ * Get current validation state
+ */
+export function getValidationState() {
+  return { ...validationState };
+}
+
+// Initialize module
+console.log('🔧 Indicator module initialized with enhanced scoring and validation');
