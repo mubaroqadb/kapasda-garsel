@@ -16,8 +16,7 @@ const formState = {
   calculations: {}
 };
 
-// Global state for kecamatan data
-let allKecamatanData = {};
+// Global state for kecamatan list
 let selectedKecamatan = null;
 let KECAMATAN_LIST = [];
 
