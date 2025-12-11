@@ -1,121 +1,223 @@
-import { supabase, userKecamatanId, userRole } from './auth.mjs';
-import { dataPembanding, saveKecamatanData, loadAllKecamatanData } from './data.mjs';
+// assets/js/form.mjs
+
+import { supabase, userRole, userKecamatanId, userKecamatanName } from './auth.mjs';
+import { dataPembanding, loadAllKecamatanData, saveKecamatanData } from './data.mjs';
+import { showToast } from './utils.mjs';
 import { INDIKATORS, BATAS_LAYAK } from './indikator.mjs';
-import { showToast, formatNumber } from './utils.mjs';
 
 let currentKecamatanId = null;
 
+// Inisialisasi tab Form
 export async function setupForm() {
-  await renderKecamatanSelect();
+  const container = document.getElementById('form');
+  container.innerHTML = `
+    <div class="bg-white rounded-xl shadow-md p-5 mb-6">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div class="flex flex-wrap gap-4">
+          ${userRole === 'admin' ? `
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Kecamatan</label>
+            <select id="selectKecamatan" onchange="onKecamatanChange()" class="w-full md:w-56 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">-- Pilih Kecamatan --</option>
+            </select>
+          </div>` : ''}
+        </div>
+        <div class="flex gap-2">
+          <button onclick="saveData()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+            Simpan
+          </button>
+          <button onclick="resetForm()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+            Reset
+          </button>
+        </div>
+      </div>
 
-  document.getElementById('selectKecamatan')?.addEventListener('change', async (e) => {
-    currentKecamatanId = parseInt(e.target.selectedOptions[0].dataset.id);
-    await loadFormData();
-  });
+      <div id="statusDisplay" class="mb-6 p-4 rounded-lg bg-gray-100">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div class="text-center md:text-left">
+            <p class="text-gray-600 text-sm">Total Nilai</p>
+            <p id="totalNilai" class="text-4xl font-bold text-blue-600">0</p>
+          </div>
+          <div class="text-center">
+            <p class="text-gray-600 text-sm">Total Bobot</p>
+            <p class="text-2xl font-semibold text-gray-700">100</p>
+          </div>
+          <div id="statusKelayakan" class="px-6 py-3 rounded-lg text-white font-bold text-lg status-tidak-layak">
+            TIDAK LAYAK
+          </div>
+        </div>
+      </div>
 
-  // Jika user hanya kecamatan, langsung load datanya
+      <div id="formIndicators" class="space-y-4"></div>
+    </div>`;
+
+  // Jika user adalah kecamatan → langsung set ke kecamatan miliknya
   if (userRole === 'kecamatan') {
     currentKecamatanId = userKecamatanId;
-    document.getElementById('formKecamatanName').textContent = userKecamatanName;
-    await loadFormData();
+    document.querySelector('#statusDisplay > div > div:first-child').insertAdjacentHTML('afterbegin', `
+      <p class="text-lg font-medium text-gray-700 mb-2">Kecamatan: <strong>${userKecamatanName}</strong></p>
+    `);
   }
+
+  // Jika admin → isi dropdown
+  if (userRole === 'admin') {
+    await populateKecamatanSelect();
+  }
+
+  // Load data pertama kali
+  await loadFormData();
 }
 
-async function renderKecamatanSelect() {
-  const { data } = await supabase.from('kecamatan').select('id, nama').order('nama');
+// Isi dropdown kecamatan (hanya untuk admin)
+async function populateKecamatanSelect() {
+  const { data, error } = await supabase
+    .from('kecamatan')
+    .select('id, nama')
+    .order('nama', { ascending: true });
+
+  if (error) {
+    showToast('Gagal memuat daftar kecamatan', true);
+    return;
+  }
+
   const select = document.getElementById('selectKecamatan');
-  if (!select) return;
-
-  select.innerHTML = '<option value="">-- Pilih Kecamatan --</option>';
-  data.forEach(k => {
-    const opt = document.createElement('option');
-    opt.value = k.nama;
-    opt.dataset.id = k.id;
-    opt.textContent = k.nama;
-    if (k.id === userKecamatanId) opt.selected = true;
-    select.appendChild(opt);
+  data.forEach(kec => {
+    const option = document.createElement('option');
+    option.value = kec.id;
+    option.textContent = kec.nama;
+    select.appendChild(option);
   });
-
-  if (userRole === 'kecamatan') select.disabled = true;
 }
 
-export async function loadFormData() {
+// Dipanggil saat admin ganti kecamatan
+window.onKecamatanChange = async function () {
+  const select = document.getElementById('selectKecamatan');
+  currentKecamatanId = select.value ? Number(select.value) : null;
+  await loadFormData();
+};
+
+// Render semua indikator + hitung skor real-time
+async function loadFormData() {
+  if (userRole === 'admin' && !currentKecamatanId) {
+    document.getElementById('formIndicators').innerHTML = '<p class="text-center text-gray-500 py-8">Silakan pilih kecamatan terlebih dahulu</p>';
+    updateTotal(0);
+    return;
+  }
+
+  if (userRole === 'kecamatan' && !currentKecamatanId) {
+    currentKecamatanId = userKecamatanId;
+  }
+
+  await loadAllKecamatanData();
+  const savedData = allKecamatanData[currentKecamatanId]?.data || {};
+
   const container = document.getElementById('formIndicators');
-  if (!container) return;
   container.innerHTML = '';
 
-  // Ambil data dari memori
-  const saved = allKecamatanData[currentKecamatanId]?.data || {};
+  let totalScore = 0;
 
-  let total = 0;
   INDIKATORS.forEach(group => {
-    const groupEl = document.createElement('div');
-    groupEl.className = 'bg-gray-50 rounded-xl p-6 mb-6 shadow';
-    groupEl.innerHTML = `<h3 class="text-lg font-bold text-gray-800 mb-4">${group.no}. ${group.nama}</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="group-${group.no}"></div>`;
-    container.appendChild(groupEl);
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'bg-gray-50 rounded-lg p-4 indicator-group';
+    groupDiv.innerHTML = `<h3 class="font-bold text-lg text-gray-800 mb-4">${group.no}. ${group.nama}</h3>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
 
     group.subs.forEach(sub => {
-      const val = saved[sub.id] || '';
-      const ratio = sub.type === 'ratio' && val ? (val / dataPembanding[sub.id]) : null;
-      const skor = sub.skor(sub.type === 'ratio' ? ratio : val);
-      total += skor * sub.bobot;
+      const value = savedData[sub.id] ?? '';
+      const inputValue = value === null ? '' : value;
 
-      const div = document.createElement('div');
-      div.className = 'bg-white p-4 rounded-lg border';
-      div.innerHTML = `
-        <p class="font-medium text-gray-700">${sub.id} – ${sub.nama}</p>
-        <input type="number" step="any" data-id="${sub.id}" value="${val}" class="mt-2 w-full px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500">
-        <p class="text-sm text-gray-600 mt-2">Pembanding: ${formatNumber(dataPembanding[sub.id])} → Skor: <strong>${skor}</strong> × ${sub.bobot} = ${skor * sub.bobot}</p>
+      const ratio = sub.type === 'ratio' && value !== '' && value !== null
+        ? value / dataPembanding[sub.id]
+        : value;
+
+      const skor = sub.skor(ratio ?? value ?? '');
+      totalScore += skor * sub.bobot;
+
+      const item = document.createElement('div');
+      item.className = 'bg-white p-4 rounded-lg border';
+      item.innerHTML = `
+        <p class="text-sm font-medium text-gray-700">${sub.id} – ${sub.nama}</p>
+        <input 
+          type="number" 
+          step="any" 
+          data-id="${sub.id}"
+          value="${inputValue}"
+          class="input-field mt-2 w-full px-3 py-2 border rounded-lg"
+          placeholder="Masukkan nilai">
+        <div class="mt-2 text-xs text-gray-600">
+          Pembanding: <strong>${dataPembanding[sub.id] || '?'}</strong>
+          → Skor: <strong>${skor}</strong> × ${sub.bobot} = <strong>${skor * sub.bobot}</strong>
+        </div>
       `;
-      document.getElementById(`group-${group.no}`).appendChild(div);
+
+      // Real-time update saat input berubah
+      item.querySelector('input').addEventListener('input', () => loadFormData());
+
+      grid.appendChild(item);
     });
+
+    groupDiv.appendChild(grid);
+    container.appendChild(groupDiv);
   });
 
+  updateTotal(totalScore);
+}
+
+function updateTotal(total) {
   document.getElementById('totalNilai').textContent = Math.round(total);
-  document.getElementById('progressFill').style.width = `${Math.min(total / BATAS_LAYAK * 100, 100)}%`;
-  document.getElementById('progressText').textContent = `${Math.round(total / BATAS_LAYAK * 100)}%`;
+
   const statusEl = document.getElementById('statusKelayakan');
   if (total >= BATAS_LAYAK) {
     statusEl.textContent = 'LAYAK';
-    statusEl.className = 'px-10 py-6 rounded-2xl text-white text-2xl font-bold status-layak';
+    statusEl.className = 'px-6 py-3 rounded-lg text-white font-bold text-lg status-layak';
   } else {
-    statusEl.textContent = 'BELUM LAYAK';
-    statusEl.className = 'px-10 py-6 rounded-2xl text-white text-2xl font-bold status-tidak-layak';
+    statusEl.textContent = 'TIDAK LAYAK';
+    statusEl.className = 'px-6 py-3 rounded-lg text-white font-bold text-lg status-tidak-layak';
   }
 }
 
-window.saveData = async () => {
-  if (!currentKecamatanId) return showToast('Pilih kecamatan dulu!', true);
+// Simpan data
+window.saveData = async function () {
+  if (!currentKecamatanId) {
+    showToast('Pilih kecamatan terlebih dahulu', true);
+    return;
+  }
 
   const inputs = document.querySelectorAll('#formIndicators input');
   const formData = {};
-  inputs.forEach(inp => {
-    formData[inp.dataset.id] = inp.value === '' ? null : parseFloat(inp.value);
+
+  inputs.forEach(input => {
+    const val = input.value.trim();
+    formData[input.dataset.id] = val === '' ? null : Number(val);
   });
 
   let total = 0;
   INDIKATORS.forEach(g => {
     g.subs.forEach(s => {
       const v = formData[s.id];
-      const ratio = s.type === 'ratio' && v ? v / dataPembanding[s.id] : v;
-      const skor = s.skor(ratio ?? v ?? '');
-      total += skor * s.bobot;
+      if (v !== null && v !== undefined) {
+        const ratio = s.type === 'ratio' ? v / dataPembanding[s.id] : v;
+        const skor = s.skor(ratio);
+        total += skor * s.bobot;
+      }
     });
   });
 
   try {
     await saveKecamatanData(currentKecamatanId, formData, Math.round(total));
-    await loadAllKecamatanData();
-    // refresh dashboard & rekap
-    if (window.loadDashboard) window.loadDashboard();
-    if (window.setupRekap) window.setupRekap();
-  } catch (e) {
-    showToast('Gagal menyimpan: ' + e.message, true);
+    await loadFormData(); // refresh tampilan
+    showToast('Data berhasil disimpan!');
+  } catch (err) {
+    showToast('Gagal menyimpan data', true);
   }
 };
 
-window.resetForm = () => {
-  if (!confirm('Reset semua input?')) return;
-  document.querySelectorAll('#formIndicators input').forEach(i => i.value = '');
-  loadFormData();
+// Reset form
+window.resetForm = function () {
+  if (confirm('Reset semua nilai ke kosong?')) {
+    document.querySelectorAll('#formIndicators input').forEach(i => i.value = '');
+    loadFormData();
+  }
 };
