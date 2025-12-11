@@ -26,19 +26,43 @@ export async function checkAuth() {
       .eq('user_id', currentUser.id)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching user profile:', error);
+      throw new Error('Gagal mengambil data profil pengguna');
+    }
+    
+    if (!profile) {
+      console.error('User profile not found for user ID:', currentUser.id);
+      throw new Error('Profil pengguna tidak ditemukan');
+    }
     
     userRole = profile.role;
     userKecamatanId = profile.kecamatan_id;
     
+    // Add validation for kecamatan users
+    if (userRole === 'kecamatan' && !userKecamatanId) {
+      console.error('Kecamatan user missing kecamatan_id:', currentUser.id);
+      throw new Error('Pengguna kecamatan tidak memiliki ID kecamatan yang valid');
+    }
+    
     if (userKecamatanId) {
-      const { data: kecData } = await supabase
-        .from('kecamatan')
-        .select('nama')
-        .eq('id', userKecamatanId)
-        .single();
-      
-      userKecamatanName = kecData?.nama || '';
+      try {
+        const { data: kecData, error: kecError } = await supabase
+          .from('kecamatan')
+          .select('nama')
+          .eq('id', userKecamatanId)
+          .single();
+        
+        if (kecError) {
+          console.error('Error fetching kecamatan data:', kecError);
+          userKecamatanName = `Kecamatan ID: ${userKecamatanId}`;
+        } else {
+          userKecamatanName = kecData?.nama || `Kecamatan ID: ${userKecamatanId}`;
+        }
+      } catch (err) {
+        console.error('Exception fetching kecamatan data:', err);
+        userKecamatanName = `Kecamatan ID: ${userKecamatanId}`;
+      }
     }
     
     document.getElementById('userInfo').textContent = `${profile.nama || currentUser.email} (${userRole.toUpperCase()})`;

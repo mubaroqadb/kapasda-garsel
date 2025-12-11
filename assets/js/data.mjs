@@ -68,11 +68,26 @@ export async function loadAllKecamatanData() {
       .from('penilaian')
       .select('kecamatan_id, data, total_nilai, updated_at');
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database error loading penilaian:', error);
+      throw new Error('Gagal mengakses database penilaian');
+    }
 
     allKecamatanData = {};
 
-    data?.forEach(row => {
+    // Handle case when data is null or empty
+    if (!data || data.length === 0) {
+      console.warn('No penilaian data found in database');
+      return;
+    }
+
+    data.forEach(row => {
+      // Validate row data before processing
+      if (!row.kecamatan_id) {
+        console.warn('Skipping penilaian row with missing kecamatan_id:', row);
+        return;
+      }
+      
       allKecamatanData[row.kecamatan_id] = {
         data: row.data || {},
         total_nilai: row.total_nilai || 0,
@@ -80,19 +95,38 @@ export async function loadAllKecamatanData() {
       };
     });
 
+    console.log(`Loaded penilaian data for ${Object.keys(allKecamatanData).length} kecamatan`);
+
   } catch (err) {
     console.error('Error loading penilaian:', err);
     showToast('Gagal memuat data penilaian', true);
     allKecamatanData = {};
+    // Re-throw the error so calling functions can handle it appropriately
+    throw err;
   }
 }
 
 // Simpan data kecamatan (dipakai form.mjs & admin.mjs)
 export async function saveKecamatanData(kecamatanId, formData, totalNilai) {
+  // Validate inputs
+  if (!kecamatanId) {
+    const error = new Error('ID Kecamatan tidak valid');
+    console.error('Save error:', error);
+    showToast(error.message, true);
+    throw error;
+  }
+
+  if (!formData || typeof formData !== 'object') {
+    const error = new Error('Data form tidak valid');
+    console.error('Save error:', error);
+    showToast(error.message, true);
+    throw error;
+  }
+
   const payload = {
     kecamatan_id: kecamatanId,
     data: formData,
-    total_nilai: totalNilai,
+    total_nilai: totalNilai || 0,
     updated_at: new Date().toISOString()
   };
 
@@ -101,19 +135,23 @@ export async function saveKecamatanData(kecamatanId, formData, totalNilai) {
       .from('penilaian')
       .upsert(payload, { onConflict: 'kecamatan_id' });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database error saving kecamatan data:', error);
+      throw new Error('Gagal menyimpan data ke database');
+    }
 
     // Update memori langsung
     allKecamatanData[kecamatanId] = {
       data: formData,
-      total_nilai: totalNilai,
+      total_nilai: totalNilai || 0,
       updated_at: payload.updated_at
     };
 
     showToast('Data berhasil disimpan!');
   } catch (err) {
     console.error('Error saving kecamatan data:', err);
-    showToast('Gagal menyimpan data: ' + err.message, true);
+    const errorMessage = err.message || 'Gagal menyimpan data';
+    showToast(errorMessage, true);
     throw err;
   }
 }

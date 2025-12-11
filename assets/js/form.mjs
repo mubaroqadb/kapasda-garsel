@@ -53,10 +53,31 @@ export async function setupForm() {
 
   // Jika user adalah kecamatan → langsung set ke kecamatan miliknya
   if (userRole === 'kecamatan') {
+    // Validate that kecamatan user has valid data
+    if (!userKecamatanId) {
+      console.error('Kecamatan user missing userKecamatanId');
+      container.innerHTML = `
+        <div class="bg-white rounded-xl shadow-md p-5 mb-6">
+          <div class="text-center py-8">
+            <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
+            <p class="text-xl font-bold text-red-600 mb-2">Data Kecamatan Tidak Ditemukan</p>
+            <p class="text-gray-700 mb-4">Akun Anda tidak terhubung dengan data kecamatan yang valid. Silakan hubungi administrator.</p>
+          </div>
+        </div>`;
+      return;
+    }
+    
     currentKecamatanId = userKecamatanId;
-    document.querySelector('#statusDisplay > div > div:first-child').insertAdjacentHTML('afterbegin', `
-      <p class="text-lg font-medium text-gray-700 mb-2">Kecamatan: <strong>${userKecamatanName}</strong></p>
-    `);
+    
+    // Use fallback name if userKecamatanName is not available
+    const displayName = userKecamatanName || `Kecamatan ID: ${userKecamatanId}`;
+    
+    const statusDisplay = document.querySelector('#statusDisplay > div > div:first-child');
+    if (statusDisplay) {
+      statusDisplay.insertAdjacentHTML('afterbegin', `
+        <p class="text-lg font-medium text-gray-700 mb-2">Kecamatan: <strong>${displayName}</strong></p>
+      `);
+    }
   }
 
   // Jika admin → isi dropdown
@@ -111,10 +132,24 @@ async function loadFormData() {
   }
 
   if (userRole === 'kecamatan' && !currentKecamatanId) {
-    currentKecamatanId = userKecamatanId;
+    if (userKecamatanId) {
+      currentKecamatanId = userKecamatanId;
+    } else {
+      document.getElementById('formIndicators').innerHTML = '<p class="text-center text-red-500 py-8">Error: Data kecamatan tidak tersedia. Silakan refresh halaman atau hubungi administrator.</p>';
+      updateTotal(0);
+      return;
+    }
   }
 
-  await loadAllKecamatanData();
+  try {
+    await loadAllKecamatanData();
+  } catch (error) {
+    console.error('Failed to load kecamatan data:', error);
+    document.getElementById('formIndicators').innerHTML = '<p class="text-center text-red-500 py-8">Gagal memuat data kecamatan. Silakan coba lagi nanti.</p>';
+    updateTotal(0);
+    return;
+  }
+  
   const savedData = allKecamatanData[currentKecamatanId]?.data || {};
 
   const container = document.getElementById('formIndicators');

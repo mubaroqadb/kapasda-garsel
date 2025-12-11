@@ -9,7 +9,12 @@ let chartKecamatan = null;
 let chartKelayakan = null;
 
 export async function loadDashboard() {
-  await loadAllKecamatanData();
+  try {
+    await loadAllKecamatanData();
+  } catch (error) {
+    console.error('Dashboard: Failed to load kecamatan data:', error);
+    // Continue with empty data, will show appropriate message
+  }
 
   const container = document.getElementById('dashboard');
   container.innerHTML = `
@@ -95,16 +100,35 @@ function updateStats() {
 }
 
 async function renderChartKecamatan() {
-  const { data: kecList } = await supabase.from('kecamatan').select('id,nama').order('nama');
+  try {
+    const { data: kecList, error } = await supabase.from('kecamatan').select('id,nama').order('nama');
+    
+    if (error) {
+      console.error('Dashboard: Failed to load kecamatan list:', error);
+      const canvas = document.getElementById('chartKecamatan');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        ctx.fillText('Gagal memuat data kecamatan', canvas.width / 2, canvas.height / 2);
+      }
+      return;
+    }
 
-  const labels = [];
-  const values = [];
+    if (!kecList || kecList.length === 0) {
+      console.warn('Dashboard: No kecamatan data found');
+      return;
+    }
 
-  kecList.forEach(kec => {
-    labels.push(kec.nama);
-    const data = allKecamatanData[kec.id];
-    values.push(data?.total_nilai || 0);
-  });
+    const labels = [];
+    const values = [];
+
+    kecList.forEach(kec => {
+      labels.push(kec.nama);
+      const data = allKecamatanData[kec.id];
+      values.push(data?.total_nilai || 0);
+    });
 
   if (chartKecamatan) chartKecamatan.destroy();
 
@@ -133,6 +157,17 @@ async function renderChartKecamatan() {
       }
     }
   });
+  } catch (error) {
+    console.error('Dashboard: Error rendering kecamatan chart:', error);
+    const canvas = document.getElementById('chartKecamatan');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.font = '16px Arial';
+      ctx.fillStyle = '#666';
+      ctx.textAlign = 'center';
+      ctx.fillText('Gagal memuat grafik kecamatan', canvas.width / 2, canvas.height / 2);
+    }
+  }
 }
 
 function renderChartKelayakan() {
@@ -163,26 +198,47 @@ function renderChartKelayakan() {
 }
 
 async function renderKecamatanCards() {
-  const { data: kecList } = await supabase.from('kecamatan').select('id,nama').order('nama');
-  const container = document.getElementById('kecamatanCards');
-  container.innerHTML = '';
+  try {
+    const { data: kecList, error } = await supabase.from('kecamatan').select('id,nama').order('nama');
+    
+    if (error) {
+      console.error('Dashboard: Failed to load kecamatan list for cards:', error);
+      const container = document.getElementById('kecamatanCards');
+      container.innerHTML = '<p class="text-center text-red-500 col-span-full">Gagal memuat data kecamatan</p>';
+      return;
+    }
 
-  for (const kec of kecList) {
-    const data = allKecamatanData[kec.id];
-    const skor = data?.total_nilai || 0;
-    const status = skor >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK';
-    const bgClass = skor >= BATAS_LAYAK ? 'bg-emerald-100 border-emerald-500' : 'bg-red-100 border-red-500';
+    if (!kecList || kecList.length === 0) {
+      console.warn('Dashboard: No kecamatan data found for cards');
+      const container = document.getElementById('kecamatanCards');
+      container.innerHTML = '<p class="text-center text-gray-500 col-span-full">Tidak ada data kecamatan</p>';
+      return;
+    }
 
-    const card = document.createElement('div');
-    card.className = `bg-white rounded-lg shadow-md p-5 text-center border-l-4 ${bgClass} card-hover`;
-    card.innerHTML = `
-      <h4 class="font-bold text-lg text-gray-800">${kec.nama}</h4>
-      <p class="text-3xl font-bold mt-3 ${skor >= BATAS_LAYAK ? 'text-emerald-600' : 'text-red-600'}">${skor}</p>
-      <p class="text-sm font-medium mt-2 ${skor >= BATAS_LAYAK ? 'text-emerald-700' : 'text-red-700'}">${status}</p>
-      <p class="text-xs text-gray-500 mt-2">
-        ${data?.updated_at ? new Date(data.updated_at).toLocaleString('id-ID') : 'Belum diisi'}
-      </p>
-    `;
-    container.appendChild(card);
+    const container = document.getElementById('kecamatanCards');
+    container.innerHTML = '';
+
+    for (const kec of kecList) {
+      const data = allKecamatanData[kec.id];
+      const skor = data?.total_nilai || 0;
+      const status = skor >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK';
+      const bgClass = skor >= BATAS_LAYAK ? 'bg-emerald-100 border-emerald-500' : 'bg-red-100 border-red-500';
+
+      const card = document.createElement('div');
+      card.className = `bg-white rounded-lg shadow-md p-5 text-center border-l-4 ${bgClass} card-hover`;
+      card.innerHTML = `
+        <h4 class="font-bold text-lg text-gray-800">${kec.nama}</h4>
+        <p class="text-3xl font-bold mt-3 ${skor >= BATAS_LAYAK ? 'text-emerald-600' : 'text-red-600'}">${skor}</p>
+        <p class="text-sm font-medium mt-2 ${skor >= BATAS_LAYAK ? 'text-emerald-700' : 'text-red-700'}">${status}</p>
+        <p class="text-xs text-gray-500 mt-2">
+          ${data?.updated_at ? new Date(data.updated_at).toLocaleString('id-ID') : 'Belum diisi'}
+        </p>
+      `;
+      container.appendChild(card);
+    }
+  } catch (error) {
+    console.error('Dashboard: Error rendering kecamatan cards:', error);
+    const container = document.getElementById('kecamatanCards');
+    container.innerHTML = '<p class="text-center text-red-500 col-span-full">Terjadi kesalahan saat memuat data</p>';
   }
 }
