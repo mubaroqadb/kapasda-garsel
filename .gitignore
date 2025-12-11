@@ -295,8 +295,7 @@
 **/*.zip
 **/*.tar.gz
 **/*.rar
-**/hs_err_pid*
-**/replay_pid*
+**/*.hex
 
 # Maven
 **/target/
@@ -348,9 +347,37 @@
 **/dist/
 **/nbdist/
 **/.nb-gradle/
+**/build/
 
-# VS Code
-**/.vscode/
+# Sublime Text
+**/*.sublime-workspace
+**/*.sublime-project
+
+# Vim
+**/*.swp
+**/*.swo
+**/*~
+**/.netrwhist
+**/tags
+
+# Emacs
+**/*~
+**/#*#
+**/.#*
+**/.emacs.desktop
+**/.emacs.desktop.lock
+**/*.elc
+**/auto-save-list
+**/tramp
+**/.org-id-locations
+**/*_archive
+**/*_flymake.*
+**/flycheck_*.el
+**/.dir-locals.el
+**/.projectile
+
+# Atom
+**/.atom/
 
 # ==============================================================================
 # C / C++
@@ -676,6 +703,11 @@
 **/*.code-workspace
 **/.history/
 
+# Visual Studio Code
+**/.vscode/
+**/*.code-workspace
+**/.history/
+
 # Visual Studio
 **/.vs/
 **/bin/
@@ -894,4 +926,18 @@
 # data/
 # uploads/
 # downloads/
+
+# GitHub Pages deployment - ensure these files are NOT ignored
+!.github/
+!.github/workflows/
+!.github/workflows/deploy.yml
+!index.html
+!login.html
+!assets/
+!assets/css/
+!assets/js/
+!assets/js/config.js
+!assets/css/*.css
+!assets/js/*.js
+!assets/js/*.mjs
 
