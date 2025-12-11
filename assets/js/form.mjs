@@ -1,7 +1,7 @@
 // Modern form module for KAPASDA with enhanced validation and UX
 
 import { supabase } from './auth.mjs';
-import { allKecamatanData, loadAllKecamatanData } from './data.mjs';
+import { allKecamatanData } from './data.mjs'; // Removed duplicate import
 import { showToast, showLoading, hideLoading, handleApiError, validateForm, showFormErrors, clearFormErrors, debounce, formatNumber, formatDate } from './utils.mjs';
 import { INDIKATORS } from './indikator.mjs';
 
@@ -26,33 +26,33 @@ let KECAMATAN_LIST = [];
 export async function fetchKecamatanList() {
   try {
     showLoading('Memuat daftar kecamatan...');
-    
+
     // Check database connection first
     const connectionOk = await checkSupabaseConnection();
     if (!connectionOk) {
       throw new Error('Tidak dapat terhubung ke database. Periksa koneksi internet Anda.');
     }
-    
+
     // Get kecamatan list from database
     const { data: kecamatanList, error: kecError } = await supabase
       .from('kecamatan')
       .select('id, nama')
       .order('nama');
-    
+
     if (kecError) {
       console.error('Error loading kecamatan list:', kecError);
       throw new Error(`Gagal memuat data kecamatan: ${kecError.message}`);
     }
-    
+
     if (!kecamatanList || kecamatanList.length === 0) {
       console.warn('No kecamatan data found in database');
       KECAMATAN_LIST = [];
       return [];
     }
-    
+
     // Update global KECAMATAN_LIST with names from database
     KECAMATAN_LIST = kecamatanList.map(k => k.nama);
-    
+
     hideLoading();
     return KECAMATAN_LIST;
   } catch (error) {
@@ -67,50 +67,50 @@ export async function fetchKecamatanList() {
 /**
  * Enhanced kecamatan data loading with caching
  */
-export async function loadAllKecamatanData(userRole, userKecamatanId) {
+export async function loadKecamatanData(userRole, userKecamatanId) {
   try {
     showLoading('Memuat data penilaian...');
-    
+
     // First, ensure we have latest kecamatan list
     await fetchKecamatanList();
-    
+
     // Get kecamatan mapping
     const { data: kecamatanList, error: kecError } = await supabase
       .from('kecamatan')
       .select('id, nama');
-    
+
     if (kecError) {
       throw new Error(`Gagal memuat data kecamatan: ${kecError.message}`);
     }
-    
+
     if (!kecamatanList || kecamatanList.length === 0) {
       console.warn('No kecamatan data found in database');
       allKecamatanData = {};
       return {};
     }
-    
+
     const kecamatanMap = {};
     kecamatanList.forEach(k => {
       kecamatanMap[k.id] = k.nama;
     });
-    
+
     // Build query based on role with optimization
     let query = supabase
       .from('penilaian')
       .select('*')
       .eq('status', 'final');
-    
+
     if (userRole === 'kecamatan' && userKecamatanId) {
       query = query.eq('kecamatan_id', userKecamatanId);
     }
-    
+
     const { data, error } = await query;
-    
+
     if (error) {
       console.error('Error loading penilaian data:', error);
       throw new Error(`Gagal memuat data penilaian: ${error.message}`);
     }
-    
+
     // Convert to allKecamatanData format with validation
     allKecamatanData = {};
     if (data) {
@@ -133,7 +133,7 @@ export async function loadAllKecamatanData(userRole, userKecamatanId) {
         }
       });
     }
-    
+
     hideLoading();
     return allKecamatanData;
   } catch (error) {
@@ -150,26 +150,26 @@ export async function loadAllKecamatanData(userRole, userKecamatanId) {
  */
 export async function setupForm() {
   const container = document.getElementById('form');
-  
+
   // Show loading skeleton
   container.innerHTML = createFormSkeleton();
-  
+
   try {
     // Get user data from auth module
     const { userRole, userKecamatanId, userKecamatanName } = await import('./auth.mjs').then(m => m);
-    
+
     // Initialize form state
     await initializeFormState(userRole, userKecamatanId, userKecamatanName);
-    
+
     // Render modern form
     renderModernForm();
-    
+
     // Initialize event listeners
     initializeFormEventListeners();
-    
+
     // Setup auto-save
     setupAutoSave();
-    
+
     console.log('✅ Form setup complete');
   } catch (error) {
     console.error('❌ Form setup failed:', error);
@@ -221,7 +221,7 @@ function createFormSkeleton() {
         <div class="skeleton skeleton-title"></div>
         <div class="skeleton skeleton-text"></div>
       </div>
-      
+
       <!-- Form Sections Skeleton -->
       ${Array(5).fill().map(() => `
         <div class="form-section">
@@ -233,7 +233,7 @@ function createFormSkeleton() {
           </div>
         </div>
       `).join('')}
-      
+
       <!-- Actions Skeleton -->
       <div class="flex justify-end gap-3">
         <div class="skeleton skeleton-button"></div>
@@ -1100,10 +1100,10 @@ function createModal(title, content, options = {}) {
 }
 
 // Export functions for other modules
-export { 
+export {
   formState,
   fetchKecamatanList,
-  loadAllKecamatanData,
+  loadKecamatanData, // Changed from loadAllKecamatanData to avoid conflict
   saveKecamatanData,
   createModal
 };
