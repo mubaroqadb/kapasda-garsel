@@ -1,6 +1,8 @@
-import { allKecamatanData, loadAllKecamatanData, supabase } from './data.mjs';
+import { allKecamatanData, loadAllKecamatanData } from './data.mjs';
+import { supabase } from './data.mjs';
 import { formatDate } from './utils.mjs';
 import { BATAS_LAYAK } from './indikator.mjs';
+import XLSX from 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
 
 export async function setupRekap() {
   await renderTable();
