@@ -1,11 +1,11 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+// assets/js/auth.mjs
+
 import { showToast } from './utils.mjs';
 
-const SUPABASE_URL = 'https://vedwbuflttjrnhueymer.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZHdidWZsdHRqcm5odWV5bWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDY3MDIsImV4cCI6MjA4MDE4MjcwMn0.qqo9_4u8rRRDRh74Jq-PGyc-0md_fO5TgQl9Wap44kE';
+// Gunakan window.supabase dari CDN (tidak perlu createClient lagi)
+export const supabase = window.supabase;
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+// State global
 export let currentUser = null;
 export let userRole = null;
 export let userKecamatanId = null;
@@ -21,13 +21,13 @@ export async function checkAuth() {
 
     currentUser = session.user;
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('nama, role, kecamatan_id')
       .eq('user_id', currentUser.id)
       .single();
 
-    if (profileError) throw profileError;
+    if (error) throw error;
 
     userRole = profile.role;
     userKecamatanId = profile.kecamatan_id;
@@ -42,51 +42,20 @@ export async function checkAuth() {
       userKecamatanName = kecData?.nama || '';
     }
 
-    document.getElementById('userInfo').textContent = `${profile.nama || profile.email} (${userRole.toUpperCase()})`;
+    document.getElementById('userInfo').textContent = `${profile.nama || currentUser.email} (${userRole.toUpperCase()})`;
     document.getElementById('currentKecamatan').textContent = userKecamatanName || '';
 
+    // Sembunyikan tab admin jika bukan admin
     if (userRole !== 'admin') {
-      document.querySelector('[data-tab="admin"]').classList.add('hidden');
-    }
-
-    // Verify database schema (persis seperti asli)
-    const schemaValid = await verifyDatabaseSchema();
-    if (!schemaValid) {
-      showToast('Skema database tidak valid. Hubungi administrator.', true);
-      return false;
+      const adminTab = document.querySelector('[data-tab="admin"]');
+      if (adminTab) adminTab.classList.add('hidden');
     }
 
     return true;
-  } catch (err) {
-    showToast('Error loading user data', true);
-    console.error(err);
-    return false;
-  }
-}
-
-async function verifyDatabaseSchema() {
-  try {
-    const { data, error } = await supabase
-      .from('penilaian')
-      .select('*')
-      .limit(1);
-
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      const requiredColumns = ['id', 'kecamatan_id', 'data', 'total_nilai', 'status'];
-      const available = Object.keys(data[0]);
-      for (const col of requiredColumns) {
-        if (!available.includes(col)) {
-          console.error(`Missing column ${col} in penilaian table`);
-          return false;
-        }
-      }
-    }
-
-    return true;
-  } catch (err) {
-    console.error('Schema verification error:', err);
+  } catch (error) {
+    showToast('Gagal memuat profil', true);
+    console.error('Auth error:', error);
+    window.location.href = 'login.html';
     return false;
   }
 }
@@ -97,8 +66,8 @@ export async function logout() {
   try {
     await supabase.auth.signOut();
     window.location.href = 'login.html';
-  } catch (err) {
-    showToast('Error during logout', true);
-    console.error(err);
+  } catch (error) {
+    showToast('Gagal logout', true);
+    console.error('Logout error:', error);
   }
 }
