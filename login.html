@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="./assets/css/tailwind-utilities.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- FIXED: Use proper initialization script -->
+  <script src="./assets/js/supabase-init.js"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-600 to-indigo-800 min-h-screen flex items-center justify-center">
   <div class="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md">
@@ -28,13 +30,6 @@
   </div>
 
   <script>
-    // Initialize Supabase client
-    const SUPABASE_URL = 'https://vedwbuflttjrnhueymer.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZHdidWZsdHRqcm5odWV5bWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDY3MDIsImV4cCI6MjA4MDE4MjcwMn0.qqo9_4u8rRRDRh74Jq-PGyc-0md_fO5TgQl9Wap44kE';
-    
-    // Create global Supabase client that will be shared with the main app
-    window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
     // Check if already logged in
     window.supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -47,33 +42,33 @@
       const password = document.getElementById('password').value;
       const errorContainer = document.getElementById('errorContainer');
       const btnLogin = document.getElementById('btnLogin');
-      
+
       // Show loading state
       btnLogin.disabled = true;
       btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
       errorContainer.innerHTML = '';
-      
+
       try {
         const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
-        
+
         if (error) {
           throw error;
         }
-        
+
         // Check if user has profile
         const { data: profile, error: profileError } = await window.supabase
           .from('profiles')
           .select('role')
           .eq('user_id', data.user.id)
           .single();
-        
+
         if (profileError || !profile) {
           throw new Error('Profil pengguna tidak ditemukan. Hubungi administrator.');
         }
-        
+
         // Success - redirect to main app
         window.location.href = 'index.html';
-        
+
       } catch (error) {
         console.error('Login error:', error);
         errorContainer.innerHTML = `
@@ -82,7 +77,7 @@
             <div class="text-sm">${error.message}</div>
           </div>
         `;
-        
+
         // Reset button state
         btnLogin.disabled = false;
         btnLogin.innerHTML = 'Masuk';
