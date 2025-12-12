@@ -265,6 +265,9 @@
                     <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
                         <i class="fas fa-trash"></i> Hapus Semua Data Kecamatan
                     </button>
+                    <button onclick="deleteIncorrectRecords()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                        <i class="fas fa-broom"></i> Bersihkan Data Salah
+                    </button>
                     <button onclick="exportAllData()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
                         <i class="fas fa-download"></i> Backup Semua Data
                     </button>
@@ -873,7 +876,7 @@
                         rasio = inputValue;
                     }
                     
-                    const skor = sub.skorFunc(rasio);
+                    const skor = inputValue === 0 ? 0 : sub.skorFunc(rasio);
                     const nilai = skor * sub.bobot;
                     totalNilai += nilai;
                     
@@ -1635,6 +1638,61 @@
             } catch (error) {
                 console.error('Error clearing all data:', error);
                 showToast('Gagal menghapus semua data!', 'error');
+            }
+        }
+
+        async function deleteIncorrectRecords() {
+            try {
+                // Get all penilaian records
+                const { data, error } = await supabase
+                    .from('penilaian')
+                    .select('*')
+                    .eq('status', 'final');
+                
+                if (error) throw error;
+                
+                let deletedCount = 0;
+                
+                for (const record of data) {
+                    const jsonData = record.data;
+                    if (jsonData && jsonData.inputs) {
+                        // Check if all inputs are 0 but total_nilai is not 0
+                        const allInputsZero = Object.values(jsonData.inputs).every(val => val === 0);
+                        const hasNonZeroScore = record.total_nilai !== 0;
+                        
+                        if (allInputsZero && hasNonZeroScore) {
+                            console.log(`Found incorrect record for kecamatan_id ${record.kecamatan_id}: all inputs 0 but score ${record.total_nilai}`);
+                            
+                            // Delete the incorrect record
+                            const { error: deleteError } = await supabase
+                                .from('penilaian')
+                                .delete()
+                                .eq('kecamatan_id', record.kecamatan_id)
+                                .eq('status', 'final');
+                            
+                            if (!deleteError) {
+                                deletedCount++;
+                                console.log(`Deleted incorrect record for kecamatan_id ${record.kecamatan_id}`);
+                            }
+                        }
+                    }
+                }
+                
+                if (deletedCount > 0) {
+                    showToast(`${deletedCount} records with incorrect calculations deleted!`);
+                    // Refresh data
+                    await loadAllKecamatanData();
+                    updateDashboard();
+                    updateRekapTable();
+                } else {
+                    showToast('No incorrect records found.');
+                }
+                
+                return deletedCount;
+            } catch (error) {
+                console.error('Error cleaning up incorrect records:', error);
+                showToast('Error cleaning up records!', 'error');
+                return 0;
             }
         }
 
