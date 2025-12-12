@@ -1,226 +1,206 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login – KAPASDA Garut Selatan</title>
-
-  <!-- Base URL for GitHub Pages subdirectory deployment -->
-  <base href="/kapasda-garsel/">
-
-  <!-- Production-ready Tailwind CSS utilities -->
-  <link rel="stylesheet" href="assets/css/tailwind-utilities.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Load configuration first -->
-  <script src="assets/js/config.js" type="module"></script>
-  <!-- Robust Supabase init (creates window.supabase) -->
-  <script src="assets/js/supabase-init.js"></script>
-
-  <style>
-    .gradient-bg {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    .card-shadow {
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-    .fade-in {
-      animation: fadeIn 0.5s ease-in;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - KAPASDA Garut Selatan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
-
 <body class="gradient-bg min-h-screen flex items-center justify-center p-4">
-  <div class="w-full max-w-md fade-in">
-    <!-- Logo & Title -->
-    <div class="text-center mb-8">
-      <div class="inline-block bg-white rounded-full p-4 mb-4 shadow-lg">
-        <i class="fas fa-chart-line text-5xl text-blue-600"></i>
-      </div>
-      <h1 class="text-3xl font-bold text-white mb-2">KAPASDA</h1>
-      <p class="text-blue-100">Penilaian Kapasitas Daerah CDP</p>
-      <p class="text-blue-100 text-sm">Kabupaten Garut Selatan</p>
-    </div>
-
-    <!-- Login Card -->
-    <div class="bg-white rounded-2xl shadow-2xl p-8 card-shadow">
-      <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Masuk ke Aplikasi</h2>
-
-      <!-- Error container -->
-      <div id="errorContainer" class="mb-4"></div>
-
-      <!-- Login Form (kecamatan-only app, no desa fields) -->
-      <form id="loginForm" class="space-y-4">
-        <div>
-          <label class="block text-gray-700 text-sm font-medium mb-2">
-            <i class="fas fa-envelope mr-2"></i>Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-            placeholder="email@example.com"
-            required
-          >
+    <div class="w-full max-w-md fade-in">
+        <!-- Logo & Title -->
+        <div class="text-center mb-8">
+            <div class="inline-block bg-white rounded-full p-4 mb-4 shadow-lg">
+                <i class="fas fa-chart-line text-5xl text-blue-600"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-2">KAPASDA</h1>
+            <p class="text-blue-100">Penilaian Kapasitas Daerah CDP</p>
+            <p class="text-blue-100 text-sm">Kabupaten Garut Selatan</p>
         </div>
 
-        <div>
-          <label class="block text-gray-700 text-sm font-medium mb-2">
-            <i class="fas fa-lock mr-2"></i>Password
-          </label>
-          <div class="relative">
-            <input
-              type="password"
-              id="password"
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              placeholder="••••••••"
-              required
-            >
-            <button
-              type="button"
-              id="togglePassword"
-              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              aria-label="Toggle password visibility"
-            >
-              <i class="fas fa-eye"></i>
-            </button>
-          </div>
+        <!-- Login Card -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 card-shadow">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Masuk ke Aplikasi</h2>
+            
+            <!-- Alert -->
+            <div id="alertBox" class="hidden mb-4 p-4 rounded-lg"></div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">
+                        <i class="fas fa-envelope mr-2"></i>Email
+                    </label>
+                    <input 
+                        type="email" 
+                        id="emailInput"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        placeholder="email@example.com"
+                        required
+                    >
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-medium mb-2">
+                        <i class="fas fa-lock mr-2"></i>Password
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="passwordInput"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                            placeholder="••••••••"
+                            required
+                        >
+                        <button 
+                            type="button" 
+                            id="togglePassword"
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button 
+                    type="submit" 
+                    id="loginButton"
+                    class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl"
+                >
+                    <i class="fas fa-sign-in-alt mr-2"></i>Masuk
+                </button>
+            </form>
+
+            <!-- Test Accounts Info -->
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <p class="text-xs text-gray-500 text-center mb-3">Akun Uji Coba:</p>
+                <div class="space-y-2 text-xs">
+                    <div class="bg-purple-50 p-2 rounded border-l-4 border-purple-500">
+                        <strong>Admin:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bbdadfd6d2d5fbd0dacbdac8dfda95cfdec8cf">[email&#160;protected]</a> / admin123
+                    </div>
+                    <div class="bg-blue-50 p-2 rounded border-l-4 border-blue-500">
+                        <strong>Kecamatan:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e08b8583ce838982818c8f8e87a08b819081938481ce94859394">[email&#160;protected]</a> / kecamatan123
+                    </div>
+                    <div class="bg-green-50 p-2 rounded border-l-4 border-green-500">
+                        <strong>Desa:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="8eeaebfdefa0faebfdfacee5effeeffdeaefa0faebfdfa">[email&#160;protected]</a> / desa123
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <button
-          type="submit"
-          id="btnLogin"
-          class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl"
-        >
-          <i class="fas fa-sign-in-alt mr-2"></i>Masuk
-        </button>
-      </form>
-    </div>
-
-    <!-- Footer -->
-    <div class="text-center mt-6 text-blue-100 text-sm">
-      <p>&copy; 2025 KAPASDA Garut Selatan</p>
-    </div>
-  </div>
-
-  <script>
-    // Toggle password visibility
-    document.getElementById('togglePassword').addEventListener('click', function() {
-      const passwordInput = document.getElementById('password');
-      const icon = this.querySelector('i');
-
-      if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-      } else {
-        passwordInput.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-      }
-    });
-
-    function setError(message) {
-      const errorContainer = document.getElementById('errorContainer');
-      errorContainer.innerHTML = `
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
-          <div class="font-bold">Login gagal!</div>
-          <div class="text-sm">${message}</div>
+        <!-- Footer -->
+        <div class="text-center mt-6 text-blue-100 text-sm">
+            <p>&copy; 2025 KAPASDA Garut Selatan</p>
         </div>
-      `;
-    }
+    </div>
 
-    function clearError() {
-      const errorContainer = document.getElementById('errorContainer');
-      errorContainer.innerHTML = '';
-    }
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        // Initialize Supabase
+        const SUPABASE_URL = 'https://vedwbuflttjrnhueymer.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZHdidWZsdHRqcm5odWV5bWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MDY3MDIsImV4cCI6MjA4MDE4MjcwMn0.qqo9_4u8rRRDRh74Jq-PGyc-0md_fO5TgQl9Wap44kE';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    function ensureSupabaseReady(callback) {
-      if (window.supabase && typeof window.supabase.auth !== 'undefined') {
-        callback();
-        return;
-      }
-
-      if (window.supabaseInitialization && typeof window.supabaseInitialization.onInitialized === 'function') {
-        window.supabaseInitialization.onInitialized(callback);
-        return;
-      }
-
-      // Fallback: poll briefly
-      const startedAt = Date.now();
-      const timer = setInterval(() => {
-        if (window.supabase && typeof window.supabase.auth !== 'undefined') {
-          clearInterval(timer);
-          callback();
-        } else if (Date.now() - startedAt > 5000) {
-          clearInterval(timer);
-          setError('Gagal menginisialisasi Supabase. Silakan refresh halaman.');
-        }
-      }, 100);
-    }
-
-    ensureSupabaseReady(() => {
-      // If already logged in, redirect to the updated old main page
-      try {
-        if (window.supabase && window.supabase.auth && typeof window.supabase.auth.getSession === 'function') {
-          window.supabase.auth.getSession().then(({ data: { session } }) => {
+        // Check if already logged in
+        supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
-              window.location.href = 'index-old.html';
+                window.location.href = 'index.html';
             }
-          }).catch(error => {
-            console.error('Error checking session:', error);
-          });
-        } else {
-          console.error('Supabase auth not available');
+        });
+
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('passwordInput');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // Show alert
+        function showAlert(message, type = 'error') {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = `mb-4 p-4 rounded-lg ${type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' : 'bg-green-50 text-green-800 border border-green-200'}`;
+            alertBox.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'} mr-2"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            alertBox.classList.remove('hidden');
+            
+            if (type === 'success') {
+                setTimeout(() => alertBox.classList.add('hidden'), 3000);
+            }
         }
-      } catch (error) {
-        console.error('Error in session check:', error);
-      }
 
-      // Handle login submission
-      document.getElementById('loginForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        clearError();
-
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const btnLogin = document.getElementById('btnLogin');
-
-        btnLogin.disabled = true;
-        btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
-
-        try {
-          const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-
-          // Confirm profile exists (role can be admin/kecamatan; no desa role is required here)
-          const { data: profile, error: profileError } = await window.supabase
-            .from('profiles')
-            .select('role')
-            .eq('user_id', data.user.id)
-            .single();
-
-          if (profileError || !profile) {
-            throw new Error('Profil pengguna tidak ditemukan. Hubungi administrator.');
-          }
-
-          window.location.href = 'index-old.html';
-        } catch (error) {
-          console.error('Login error:', error);
-          setError(error.message || 'Login gagal. Periksa email dan password Anda.');
-          btnLogin.disabled = false;
-          btnLogin.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Masuk';
-        }
-      });
-    });
-  </script>
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const loginButton = document.getElementById('loginButton');
+            
+            // Disable button and show loading
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
+            
+            try {
+                // Sign in with Supabase
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) throw error;
+                
+                // Get user profile to check role
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('user_id', data.user.id)
+                    .single();
+                
+                if (profileError) throw profileError;
+                
+                showAlert('Login berhasil! Mengalihkan...', 'success');
+                
+                // Redirect to main app
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showAlert(error.message || 'Login gagal. Periksa email dan password Anda.');
+                
+                // Re-enable button
+                loginButton.disabled = false;
+                loginButton.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Masuk';
+            }
+        });
+    </script>
 </body>
 </html>
