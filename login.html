@@ -168,11 +168,21 @@
 
     ensureSupabaseReady(() => {
       // If already logged in, redirect to the updated old main page
-      window.supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          window.location.href = 'index-old.html';
+      try {
+        if (window.supabase && window.supabase.auth && typeof window.supabase.auth.getSession === 'function') {
+          window.supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+              window.location.href = 'index-old.html';
+            }
+          }).catch(error => {
+            console.error('Error checking session:', error);
+          });
+        } else {
+          console.error('Supabase auth not available');
         }
-      });
+      } catch (error) {
+        console.error('Error in session check:', error);
+      }
 
       // Handle login submission
       document.getElementById('loginForm').addEventListener('submit', async function(e) {
