@@ -1,29 +1,25 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KAPASDA - Penilaian Kapasitas Kecamatan Garut Selatan</title>
-
   <!-- Base URL for GitHub Pages subdirectory deployment -->
   <base href="/kapasda-garsel/">
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="assets/css/tailwind-utilities.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="assets/css/style.css" />
-
-  <!-- Vendor -->
+  <!-- Production-ready Tailwind CSS utilities -->
+  <link rel="stylesheet" href="assets/css/tailwind-utilities.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Config + Supabase init -->
+  <!-- Load configuration first -->
   <script src="assets/js/config.js" type="module"></script>
+  <!-- FIXED: Use proper initialization script -->
   <script src="assets/js/supabase-init.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
-
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+
   <div id="loading" class="fixed inset-0 bg-white/95 flex items-center justify-center z-50">
     <div class="text-center">
       <div class="relative">
@@ -97,14 +93,9 @@
     </div>
 
     <div id="dashboard" class="tab-content active"></div>
-
-    <!-- IMPORTANT: Wrap the form tab in a <form> so form.mjs validation can find it -->
-    <form id="penilaianForm">
-      <div id="form" class="tab-content"></div>
-    </form>
-
-    <div id="rekap" class="tab-content"></div>
-    <div id="admin" class="tab-content"></div>
+    <div id="form"      class="tab-content"></div>
+    <div id="rekap"     class="tab-content"></div>
+    <div id="admin"     class="tab-content"></div>
   </main>
 
   <footer class="bg-gray-800 text-white py-6 mt-12">
@@ -125,12 +116,10 @@
     import { initApp } from 'assets/js/main.mjs';
     await initApp();
 
+    // Update current time
     function updateTime() {
       const now = new Date();
-      const el = document.getElementById('currentTime');
-      if (!el) return;
-
-      el.textContent = now.toLocaleString('id-ID', {
+      document.getElementById('currentTime').textContent = now.toLocaleString('id-ID', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -141,7 +130,7 @@
     }
 
     updateTime();
-    setInterval(updateTime, 60000);
+    setInterval(updateTime, 60000); // Update every minute
   </script>
 </body>
 </html>

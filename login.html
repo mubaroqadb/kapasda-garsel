@@ -4,88 +4,212 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login – KAPASDA Garut Selatan</title>
+
   <!-- Base URL for GitHub Pages subdirectory deployment -->
   <base href="/kapasda-garsel/">
+
   <!-- Production-ready Tailwind CSS utilities -->
   <link rel="stylesheet" href="assets/css/tailwind-utilities.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <!-- Load configuration first -->
   <script src="assets/js/config.js" type="module"></script>
-  <!-- FIXED: Use proper initialization script -->
+  <!-- Robust Supabase init (creates window.supabase) -->
   <script src="assets/js/supabase-init.js"></script>
+
+  <style>
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .card-shadow {
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
-<body class="bg-gradient-to-br from-blue-600 to-indigo-800 min-h-screen flex items-center justify-center">
-  <div class="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md">
+
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-md fade-in">
+    <!-- Logo & Title -->
     <div class="text-center mb-8">
-      <i class="fas fa-chart-line text-6xl text-blue-600 mb-4"></i>
-      <h1 class="text-3xl font-bold text-gray-800">KAPASDA Garut Selatan</h1>
-      <p class="text-gray-600">Login untuk melanjutkan</p>
+      <div class="inline-block bg-white rounded-full p-4 mb-4 shadow-lg">
+        <i class="fas fa-chart-line text-5xl text-blue-600"></i>
+      </div>
+      <h1 class="text-3xl font-bold text-white mb-2">KAPASDA</h1>
+      <p class="text-blue-100">Penilaian Kapasitas Daerah CDP</p>
+      <p class="text-blue-100 text-sm">Kabupaten Garut Selatan</p>
     </div>
-    <div id="errorContainer" class="mb-4"></div>
-    <div class="space-y-5">
-      <input type="email" id="email" placeholder="Email" class="w-full px-5 py-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-300 focus:border-blue-500 transition">
-      <input type="password" id="password" placeholder="Password" class="w-full px-5 py-4 border border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-300 focus:border-blue-500 transition">
-      <button id="btnLogin" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg">
-        Masuk
-      </button>
+
+    <!-- Login Card -->
+    <div class="bg-white rounded-2xl shadow-2xl p-8 card-shadow">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Masuk ke Aplikasi</h2>
+
+      <!-- Error container -->
+      <div id="errorContainer" class="mb-4"></div>
+
+      <!-- Login Form (kecamatan-only app, no desa fields) -->
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-2">
+            <i class="fas fa-envelope mr-2"></i>Email
+          </label>
+          <input
+            type="email"
+            id="email"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            placeholder="email@example.com"
+            required
+          >
+        </div>
+
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-2">
+            <i class="fas fa-lock mr-2"></i>Password
+          </label>
+          <div class="relative">
+            <input
+              type="password"
+              id="password"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              placeholder="••••••••"
+              required
+            >
+            <button
+              type="button"
+              id="togglePassword"
+              class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              aria-label="Toggle password visibility"
+            >
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          id="btnLogin"
+          class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition shadow-lg hover:shadow-xl"
+        >
+          <i class="fas fa-sign-in-alt mr-2"></i>Masuk
+        </button>
+      </form>
     </div>
-    <p class="text-center text-sm text-gray-500 mt-6">© 2025 Tim Riset Unfari untuk Kab. Garut</p>
+
+    <!-- Footer -->
+    <div class="text-center mt-6 text-blue-100 text-sm">
+      <p>&copy; 2025 KAPASDA Garut Selatan</p>
+    </div>
   </div>
 
   <script>
-    // Check if already logged in
-    window.supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        window.location.href = 'index.html';
+    // Toggle password visibility
+    document.getElementById('togglePassword').addEventListener('click', function() {
+      const passwordInput = document.getElementById('password');
+      const icon = this.querySelector('i');
+
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
       }
     });
 
-    document.getElementById('btnLogin').addEventListener('click', async () => {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+    function setError(message) {
       const errorContainer = document.getElementById('errorContainer');
-      const btnLogin = document.getElementById('btnLogin');
+      errorContainer.innerHTML = `
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+          <div class="font-bold">Login gagal!</div>
+          <div class="text-sm">${message}</div>
+        </div>
+      `;
+    }
 
-      // Show loading state
-      btnLogin.disabled = true;
-      btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
+    function clearError() {
+      const errorContainer = document.getElementById('errorContainer');
       errorContainer.innerHTML = '';
+    }
 
-      try {
-        const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
-
-        if (error) {
-          throw error;
-        }
-
-        // Check if user has profile
-        const { data: profile, error: profileError } = await window.supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .single();
-
-        if (profileError || !profile) {
-          throw new Error('Profil pengguna tidak ditemukan. Hubungi administrator.');
-        }
-
-        // Success - redirect to main app
-        window.location.href = 'index.html';
-
-      } catch (error) {
-        console.error('Login error:', error);
-        errorContainer.innerHTML = `
-          <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
-            <div class="font-bold">Login gagal!</div>
-            <div class="text-sm">${error.message}</div>
-          </div>
-        `;
-
-        // Reset button state
-        btnLogin.disabled = false;
-        btnLogin.innerHTML = 'Masuk';
+    function ensureSupabaseReady(callback) {
+      if (window.supabase && typeof window.supabase.auth !== 'undefined') {
+        callback();
+        return;
       }
+
+      if (window.supabaseInitialization && typeof window.supabaseInitialization.onInitialized === 'function') {
+        window.supabaseInitialization.onInitialized(callback);
+        return;
+      }
+
+      // Fallback: poll briefly
+      const startedAt = Date.now();
+      const timer = setInterval(() => {
+        if (window.supabase && typeof window.supabase.auth !== 'undefined') {
+          clearInterval(timer);
+          callback();
+        } else if (Date.now() - startedAt > 5000) {
+          clearInterval(timer);
+          setError('Gagal menginisialisasi Supabase. Silakan refresh halaman.');
+        }
+      }, 100);
+    }
+
+    ensureSupabaseReady(() => {
+      // If already logged in, redirect to the updated old main page
+      window.supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          window.location.href = 'index-old.html';
+        }
+      });
+
+      // Handle login submission
+      document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        clearError();
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const btnLogin = document.getElementById('btnLogin');
+
+        btnLogin.disabled = true;
+        btnLogin.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
+
+        try {
+          const { data, error } = await window.supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+
+          // Confirm profile exists (role can be admin/kecamatan; no desa role is required here)
+          const { data: profile, error: profileError } = await window.supabase
+            .from('profiles')
+            .select('role')
+            .eq('user_id', data.user.id)
+            .single();
+
+          if (profileError || !profile) {
+            throw new Error('Profil pengguna tidak ditemukan. Hubungi administrator.');
+          }
+
+          window.location.href = 'index-old.html';
+        } catch (error) {
+          console.error('Login error:', error);
+          setError(error.message || 'Login gagal. Periksa email dan password Anda.');
+          btnLogin.disabled = false;
+          btnLogin.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Masuk';
+        }
+      });
     });
   </script>
 </body>
