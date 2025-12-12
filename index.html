@@ -1193,6 +1193,8 @@
         function resetForm(showConfirm = true) {
             if (showConfirm && !confirm('Reset semua input form?')) return;
             
+            const kecamatan = document.getElementById('selectKecamatan').value;
+            
             INDICATORS.forEach(ind => {
                 ind.subs.forEach(sub => {
                     const input = document.getElementById(`input_${sub.id}`);
@@ -1212,6 +1214,11 @@
             const statusEl = document.getElementById('statusKelayakan');
             statusEl.textContent = 'TIDAK LAYAK';
             statusEl.className = 'px-6 py-3 rounded-lg text-white font-bold text-lg status-tidak-layak';
+            
+            // Remove data from global state and refresh rekap table
+            delete allKecamatanData[kecamatan];
+            updateRekapTable();
+            updateDashboard();
         }
 
         // ==================== DASHBOARD ====================
