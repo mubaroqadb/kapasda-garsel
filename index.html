@@ -861,6 +861,17 @@
         }
 
         async function calculateAndSave(kecamatan, inputs) {
+            // 1. Check Authentication
+            if (!currentUser) {
+                // Try to re-check auth silently
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                } else {
+                    throw new Error("Sesi login berakhir. Harap login kembali.");
+                }
+            }
+
             let totalNilai = 0;
             const calculations = {};
             
@@ -893,6 +904,9 @@
             
             const status = totalNilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK';
             
+            // Validate inputs
+            if (!kecamatan) throw new Error("Nama kecamatan tidak valid");
+
             allKecamatanData[kecamatan] = {
                 inputs: inputs,
                 calculations: calculations,
@@ -903,14 +917,22 @@
             
             // Save to Supabase
             try {
-                // Get kecamatan ID
+                // Get kecamatan ID with fuzzy matching
                 const { data: kecData, error: kecError } = await supabase
                     .from('kecamatan')
                     .select('id')
-                    .eq('nama', kecamatan)
-                    .single();
+                    .ilike('nama', kecamatan.trim()) // Use case-insensitive match
+                    .maybeSingle(); 
                 
-                if (kecError) throw kecError;
+                if (kecError) {
+                    console.error("Supabase Error (Kecamatan Lookup):", kecError);
+                    throw new Error("Gagal mencari data kecamatan: " + kecError.message);
+                }
+
+                if (!kecData) {
+                    console.error(`Kecamatan not found: '${kecamatan}'`);
+                    throw new Error(`Data kecamatan '${kecamatan}' tidak ditemukan di database.`);
+                }
                 
                 const penilaianData = {
                     kecamatan_id: kecData.id,
@@ -927,13 +949,17 @@
                 const { error } = await supabase
                     .from('penilaian')
                     .upsert(penilaianData, {
-                        onConflict: 'kecamatan_id,status'
+                        onConflict: 'kecamatan_id'
                     });
                 
-                if (error) throw error;
+                if (error) {
+                    console.error("Supabase Upsert Error:", error);
+                    throw new Error("Gagal menyimpan ke database: " + error.message);
+                }
+
             } catch (error) {
                 console.error('Error saving to Supabase:', error);
-                throw error;
+                throw error; // Re-throw to be caught by saveData
             }
             
             return { totalNilai, status };
@@ -1182,14 +1208,19 @@
             });
             
             try {
+                // Show loading indicator in button if possible, or just toast
+                showToast(`Menyimpan data ${kecamatan}...`, 'info');
+                
                 await calculateAndSave(kecamatan, inputs);
                 await loadAllKecamatanData();
                 updateDashboard();
                 updateRekapTable();
+                
                 showToast(`Data ${kecamatan} berhasil disimpan!`);
             } catch (error) {
                 console.error('Error saving data:', error);
-                showToast('Gagal menyimpan data!', 'error');
+                // Show specific error message from the thrown Error
+                showToast(`Gagal: ${error.message || 'Terjadi kesalahan sistem'}`, 'error');
             }
         }
 
