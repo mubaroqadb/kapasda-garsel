@@ -406,217 +406,44 @@
 
         // Indicator configurations with formulas
         const INDICATORS = [
-            {
-                no: 1, nama: 'Lokasi Ibukota',
-                subs: [
-                    { id: '1.1', nama: 'Rasio ketimpangan jarak (batas terdekat/terjauh dengan ibukota)', 
-                      pembanding: 55, bobot: 2, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r <= 0.2 ? 1 : r <= 0.4 ? 2 : r <= 0.6 ? 3 : r <= 0.8 ? 4 : 5 },
-                    { id: '1.2', nama: 'Ketersediaan lahan pusat pemerintahan (ha)', 
-                      pembanding: 50, bobot: 2, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v <= 30 ? 1 : v <= 40 ? 2 : v <= 50 ? 3 : v <= 60 ? 4 : 5 }
-                ]
-            },
-            {
-                no: 2, nama: 'Hidrografi',
-                subs: [
-                    { id: '2.1', nama: 'Potensi air permukaan dan air tanah (liter/detik)', 
-                      pembanding: 4000, bobot: 1, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v <= 1000 ? 1 : v <= 2000 ? 2 : v <= 3000 ? 3 : v <= 4000 ? 4 : 5 },
-                    { id: '2.2', nama: 'Ketersediaan air baku untuk penduduk & ekonomi (%)', 
-                      pembanding: 40, bobot: 1, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v <= 10 ? 1 : v <= 20 ? 2 : v <= 30 ? 3 : v <= 40 ? 4 : 5 }
-                ]
-            },
-            {
-                no: 3, nama: 'Kerawanan Bencana',
-                subs: [
-                    { id: '3.1', nama: 'Indeks Risiko Bencana Indonesia (IRBI) - Kab. Induk', 
-                      pembanding: 72, bobot: 1, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v < 72 ? 5 : v <= 144 ? 3 : 1 },
-                    { id: '3.2', nama: 'Jumlah kejadian bencana alam 10 tahun terakhir (kali)', 
-                      pembanding: 200, bobot: 2, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v === 0 ? 5 : v <= 5 ? 4 : v <= 10 ? 3 : v <= 15 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 4, nama: 'Kualitas SDM',
-                subs: [
-                    { id: '4.1', nama: 'Rasio Angka Lama Sekolah (RLS) CDP vs Pulau Jawa', 
-                      pembanding: 8.61, bobot: 4, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
-                    { id: '4.2', nama: 'Rasio APK Pendidikan Menengah Atas vs Pulau Jawa', 
-                      pembanding: 82.43, bobot: 4, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
-                    { id: '4.3', nama: 'Rasio APK Pendidikan Dasar vs Pulau Jawa', 
-                      pembanding: 109.52, bobot: 4, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 5, nama: 'Distribusi Penduduk',
-                subs: [
-                    { id: '5.1', nama: 'Rasio kepadatan penduduk CDP vs rata-rata Pulau Jawa', 
-                      pembanding: 1117, bobot: 3, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 6, nama: 'Tindakan Kriminal Umum',
-                subs: [
-                    { id: '6.1', nama: 'Rasio kriminal per 10.000 penduduk CDP vs Pulau Jawa', 
-                      pembanding: 5.2, bobot: 2, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 1 : r >= 0.9 ? 2 : r >= 0.8 ? 3 : r >= 0.7 ? 4 : 5 }
-                ]
-            },
-            {
-                no: 7, nama: 'Konflik Sosial',
-                subs: [
-                    { id: '7.1', nama: 'Jumlah konflik sosial di CDP (kali)', 
-                      pembanding: 2, bobot: 2, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v === 0 ? 5 : v <= 5 ? 4 : v <= 10 ? 3 : v <= 15 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 8, nama: 'Partisipasi Masyarakat dalam Pemilu',
-                subs: [
-                    { id: '8.1', nama: 'Persentase partisipasi pemilih (%)', 
-                      pembanding: 70, bobot: 3, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v > 70 ? 5 : v >= 60 ? 4 : v >= 50 ? 3 : v >= 40 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 9, nama: 'Kohesivitas Sosial',
-                subs: [
-                    { id: '9.1', nama: 'Jumlah etnik/subetnik di CDP', 
-                      pembanding: 1, bobot: 2, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v <= 1 ? 5 : v <= 3 ? 4 : v <= 5 ? 3 : v <= 7 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 10, nama: 'Organisasi Kemasyarakatan',
-                subs: [
-                    { id: '10.1', nama: 'Jumlah ormas terdaftar di CDP', 
-                      pembanding: 40, bobot: 3, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v > 40 ? 5 : v >= 31 ? 4 : v >= 21 ? 3 : v >= 11 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 11, nama: 'Pertumbuhan Ekonomi',
-                subs: [
-                    { id: '11.1', nama: 'Rasio pertumbuhan ekonomi 5 tahun CDP vs Pulau Jawa', 
-                      pembanding: 5.43, bobot: 3, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
-                    { id: '11.2', nama: 'Rasio pendapatan perkapita CDP vs Pulau Jawa (Rp)', 
-                      pembanding: 45000000, bobot: 3, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
-                    { id: '11.3', nama: 'Rasio IPM CDP vs Pulau Jawa', 
-                      pembanding: 74.24, bobot: 3, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
-                    { id: '11.4', nama: 'Rasio angka kemiskinan CDP vs Pulau Jawa (%)', 
-                      pembanding: 7.83, bobot: 3, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r < 0.7 ? 5 : r < 0.8 ? 4 : r < 0.9 ? 3 : r < 1 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 12, nama: 'Potensi Unggulan Daerah',
-                subs: [
-                    { id: '12.1', nama: 'Rasio PDRB sektor pertanian perkapita vs PDB nasional', 
-                      pembanding: 1, bobot: 1, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 },
-                    { id: '12.2', nama: 'Rasio PDRB sektor industri perkapita vs rata-rata Pulau Jawa', 
-                      pembanding: 1, bobot: 1, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 },
-                    { id: '12.3', nama: 'Rasio PDRB sektor perdagangan, hotel, restoran perkapita', 
-                      pembanding: 1, bobot: 2, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 },
-                    { id: '12.4', nama: 'Rasio PDRB sektor pengangkutan & komunikasi perkapita', 
-                      pembanding: 1, bobot: 1, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 },
-                    { id: '12.5', nama: 'Rasio PDRB sektor keuangan & persewaan perkapita', 
-                      pembanding: 1, bobot: 2, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 },
-                    { id: '12.6', nama: 'Rasio PDRB sektor jasa perkapita', 
-                      pembanding: 1, bobot: 2, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v >= 1 ? 5 : v >= 0.9 ? 4 : v >= 0.8 ? 3 : v >= 0.7 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 13, nama: 'Kapasitas PAD Induk',
-                subs: [
-                    { id: '13.1', nama: 'Rasio PAD induk terhadap total pendapatan daerah induk', 
-                      pembanding: 4780000000000, bobot: 5, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 14, nama: 'Potensi PAD CDP',
-                subs: [
-                    { id: '14.1', nama: 'Rasio PAD CDP terhadap total PAD induk', 
-                      pembanding: 538000000000, bobot: 8, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 1 ? 1 : r >= 0.9 ? 2 : r >= 0.8 ? 3 : r >= 0.7 ? 4 : 5 }
-                ]
-            },
-            {
-                no: 15, nama: 'Pengelolaan Keuangan & Aset',
-                subs: [
-                    { id: '15.1', nama: 'Jumlah opini WTP BPK dalam 5 tahun terakhir (1-5)', 
-                      pembanding: 5, bobot: 4, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v >= 5 ? 5 : v >= 4 ? 4 : v >= 3 ? 3 : v >= 2 ? 2 : 1 }
-                ]
-            },
-            {
-                no: 16, nama: 'Aksesibilitas Pelayanan Dasar Pendidikan',
-                subs: [
-                    { id: '16.1', nama: 'Rata-rata jumlah murid per ruang belajar SD', 
-                      pembanding: 28, bobot: 2, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v <= 32 ? 1 : v <= 35 ? 2 : v <= 39 ? 3 : v <= 42 ? 4 : 5 },
-                    { id: '16.2', nama: 'Rata-rata jumlah murid per ruang belajar SMP', 
-                      pembanding: 32, bobot: 2, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v <= 32 ? 1 : v <= 35 ? 2 : v <= 39 ? 3 : v <= 42 ? 4 : 5 },
-                    { id: '16.3', nama: 'Rata-rata jumlah murid per ruang belajar SMA/SMK', 
-                      pembanding: 36, bobot: 1, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v <= 32 ? 1 : v <= 35 ? 2 : v <= 39 ? 3 : v <= 42 ? 4 : 5 }
-                ]
-            },
-            {
-                no: 17, nama: 'Aksesibilitas Pelayanan Dasar Kesehatan',
-                subs: [
-                    { id: '17.1', nama: 'Rasio penduduk per dokter (jumlah penduduk/dokter)', 
-                      pembanding: 2500, bobot: 3, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r < 2500 ? 1 : r < 3000 ? 2 : r < 3500 ? 3 : r < 4000 ? 4 : 5 },
-                    { id: '17.2', nama: 'Rasio penduduk per tempat tidur RS/Puskesmas (penduduk/TT)', 
-                      pembanding: 1000, bobot: 2, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r <= 1000 ? 1 : r <= 1500 ? 2 : r <= 2000 ? 3 : r <= 2500 ? 4 : 5 }
-                ]
-            },
-            {
-                no: 18, nama: 'Aksesibilitas Pelayanan Dasar Infrastruktur',
-                subs: [
-                    { id: '18.1', nama: 'Rasio (panjang jalan/luas) CDP vs rata-rata Pulau Jawa', 
-                      pembanding: 2850, bobot: 10, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 0.8 ? 1 : r >= 0.6 ? 2 : r >= 0.41 ? 3 : r >= 0.21 ? 4 : 5 }
-                ]
-            },
-            {
-                no: 19, nama: 'Jumlah Pegawai ASN di Daerah Induk',
-                subs: [
-                    { id: '19.1', nama: 'Rasio ASN/penduduk induk vs rata-rata Pulau Jawa', 
-                      pembanding: 2680000, bobot: 2, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 0.8 ? 1 : r >= 0.6 ? 2 : r >= 0.41 ? 3 : r >= 0.21 ? 4 : 5 },
-                    { id: '19.2', nama: 'Rasio ASN CDP terhadap ASN induk', 
-                      pembanding: 12500, bobot: 2, type: 'ratio',
-                      skorFunc: (r) => r === '' ? 0 : r >= 0.8 ? 1 : r >= 0.6 ? 2 : r >= 0.41 ? 3 : r >= 0.21 ? 4 : 5 }
-                ]
-            },
-            {
-                no: 20, nama: 'Rancangan RTRW Daerah Persiapan',
-                subs: [
-                    { id: '20.1', nama: 'Ketersediaan dokumen RTRW CDP (Skor 1, 3, atau 5)', 
-                      pembanding: 3, bobot: 2, type: 'direct',
-                      skorFunc: (v) => v === '' ? 0 : v >= 5 ? 5 : v >= 3 ? 3 : 1 }
-                ]
-            }
+            { no: 1, nama: 'Jarak ke Ibukota CDP', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v <= 40 ? 5 : v <= 60 ? 5 : v <= 80 ? 4 : v <= 100 ? 3 : v <= 120 ? 2 : 1 },
+            { no: 2, nama: 'Luas Lahan Pemerintahan', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 60 ? 5 : v >= 50 ? 4 : v >= 40 ? 3 : 2 },
+            { no: 3, nama: 'Potensi Air Permukaan', bobot: 1, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 16000 ? 5 : v >= 12000 ? 4 : v >= 8000 ? 3 : 2 },
+            { no: 4, nama: 'Ketersediaan Air Baku', bobot: 1, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 80 ? 5 : v >= 60 ? 4 : v >= 40 ? 3 : 2 },
+            { no: 5, nama: 'IRBI Kab. Garut (Fixed)', bobot: 1, type: 'direct', skorFunc: (v) => v === '' ? 0 : 5 },
+            { no: 6, nama: 'Kejadian Bencana 10 Tahun', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v === 0 ? 5 : v <= 5 ? 4 : v <= 10 ? 3 : 2 },
+            { no: 7, nama: 'Rata-rata Lama Sekolah (RLS)', bobot: 4, type: 'ratio', pembanding: 7.25, skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+            { no: 8, nama: 'APK SMA/SMK', bobot: 4, type: 'ratio', pembanding: 68.5, skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+            { no: 9, nama: 'APK SD-SMP (Dikdas)', bobot: 4, type: 'ratio', pembanding: 98.5, skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+            { no: 10, nama: 'Rasio Kepadatan Penduduk', bobot: 3, type: 'ratio', pembanding: 421.5, skorFunc: (r) => r === '' ? 0 : r < 0.5 ? 5 : r <= 0.8 ? 4 : r <= 1 ? 3 : r <= 1.2 ? 2 : 1 },
+            { no: 11, nama: 'Jumlah Kriminal/Tahun', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v === 0 ? 5 : v <= 5 ? 4 : v <= 10 ? 3 : 2 },
+            { no: 12, nama: 'Jumlah Konflik 5 Tahun', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v === 0 ? 5 : v <= 2 ? 5 : v <= 5 ? 4 : v <= 10 ? 3 : 1 },
+            { no: 13, nama: 'Jumlah DPT Pemilu 2024', bobot: 3, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 50000 ? 5 : v >= 40000 ? 4 : v >= 30000 ? 3 : 2 },
+            { no: 14, nama: 'Partisipasi Pemilih', bobot: 3, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 80 ? 5 : v >= 75 ? 4 : v >= 70 ? 3 : 2 },
+            { no: 15, nama: 'Persentase Etnik Sunda', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 90 ? 4 : 5 },
+            { no: 16, nama: 'Jumlah Ormas Terdaftar', bobot: 3, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 20 ? 5 : v >= 15 ? 4 : v >= 10 ? 3 : 2 },
+            { no: 17, nama: 'Rata-rata LPE 5 Tahun', bobot: 3, type: 'ratio', pembanding: 4.65, skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+            { no: 18, nama: 'Pendapatan Per Kapita', bobot: 3, type: 'ratio', pembanding: 31, skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+            { no: 19, nama: 'IPM Kecamatan', bobot: 3, type: 'ratio', pembanding: 69.67, skorFunc: (r) => r === '' ? 0 : r >= 1 ? 5 : r >= 0.9 ? 4 : r >= 0.8 ? 3 : r >= 0.7 ? 2 : 1 },
+            { no: 20, nama: 'Penduduk Miskin', bobot: 3, type: 'ratio', pembanding: 7.95, skorFunc: (r) => r === '' ? 0 : r < 0.7 ? 5 : r <= 1 ? 4 : r <= 1.2 ? 3 : r <= 1.4 ? 2 : 1 },
+            { no: 21, nama: 'PDRB Sektor Pertanian', bobot: 1, type: 'direct', skorFunc: (v) => v === '' ? 0 : v > 0 ? 4 : 1 },
+            { no: 22, nama: 'PDRB Sektor Industri', bobot: 1, type: 'direct', skorFunc: (v) => v === '' ? 0 : v > 0 ? 4 : 1 },
+            { no: 23, nama: 'PDRB Sektor Perdagangan', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v > 0 ? 4 : 1 },
+            { no: 24, nama: 'PDRB Sektor Transportasi', bobot: 1, type: 'direct', skorFunc: (v) => v === '' ? 0 : v > 0 ? 4 : 1 },
+            { no: 25, nama: 'PDRB Sektor Keuangan', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v > 0 ? 4 : 1 },
+            { no: 26, nama: 'PDRB Sektor Jasa', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v > 0 ? 4 : 1 },
+            { no: 27, nama: 'PAD Kab. Garut 2024 (Fixed)', bobot: 5, type: 'direct', skorFunc: (v) => v === '' ? 0 : 5 },
+            { no: 28, nama: 'Total PAD Kecamatan', bobot: 8, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 20 ? 5 : v >= 10 ? 4 : 3 },
+            { no: 29, nama: 'Opini WTP 5 Tahun (Fixed)', bobot: 4, type: 'direct', skorFunc: (v) => v === '' ? 0 : 5 },
+            { no: 30, nama: 'Rasio Murid SD/Kelas', bobot: 2, type: 'ratio', pembanding: 28, skorFunc: (r) => r === '' ? 0 : (r >= 0.8 && r <= 1.1) ? 5 : (r >= 0.7 && r < 0.8 || r > 1.1 && r <= 1.2) ? 4 : (r >= 0.6 && r < 0.7 || r > 1.2 && r <= 1.3) ? 3 : (r >= 0.5 && r < 0.6 || r > 1.3 && r <= 1.4) ? 2 : 1 },
+            { no: 31, nama: 'Rasio Murid SMP/Kelas', bobot: 2, type: 'ratio', pembanding: 32, skorFunc: (r) => r === '' ? 0 : (r >= 0.8 && r <= 1.1) ? 5 : (r >= 0.7 && r < 0.8 || r > 1.1 && r <= 1.2) ? 4 : (r >= 0.6 && r < 0.7 || r > 1.2 && r <= 1.3) ? 3 : (r >= 0.5 && r < 0.6 || r > 1.3 && r <= 1.4) ? 2 : 1 },
+            { no: 32, nama: 'Rasio Murid SMA/Kelas', bobot: 1, type: 'ratio', pembanding: 36, skorFunc: (r) => r === '' ? 0 : (r >= 0.8 && r <= 1.1) ? 5 : (r >= 0.7 && r < 0.8 || r > 1.1 && r <= 1.2) ? 4 : (r >= 0.6 && r < 0.7 || r > 1.2 && r <= 1.3) ? 3 : (r >= 0.5 && r < 0.6 || r > 1.3 && r <= 1.4) ? 2 : 1 },
+            { no: 33, nama: 'Jumlah Dokter', bobot: 3, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 5 ? 5 : v >= 2 ? 4 : 3 },
+            { no: 34, nama: 'Jumlah Tempat Tidur RS', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 100 ? 5 : v >= 50 ? 4 : 3 },
+            { no: 35, nama: 'Panjang Jalan Desa', bobot: 10, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 150 ? 5 : v >= 80 ? 4 : 3 },
+            { no: 36, nama: 'ASN Kab. Garut (Fixed)', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : 5 },
+            { no: 37, nama: 'ASN/P3K di Kecamatan', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : v >= 1000 ? 5 : v >= 500 ? 4 : 3 },
+            { no: 38, nama: 'Status RTRW CDP (Fixed)', bobot: 2, type: 'direct', skorFunc: (v) => v === '' ? 0 : 5 }
         ];
 
         // ==================== STATE MANAGEMENT ====================
@@ -679,27 +506,22 @@
                 
                 if (error) throw error;
                 
+                // Initialize with defaults from INDICATORS
+                dataPembanding = {};
+                INDICATORS.forEach(ind => {
+                    if (ind.type === 'ratio') {
+                        dataPembanding[ind.no] = ind.pembanding;
+                    }
+                });
+                
                 if (data && data.length > 0) {
-                    // Load from database
                     data.forEach(item => {
                         dataPembanding[item.subindikator_kode] = item.nilai_max;
-                    });
-                } else {
-                    // Initialize with default values
-                    INDICATORS.forEach(ind => {
-                        ind.subs.forEach(sub => {
-                            dataPembanding[sub.id] = sub.pembanding;
-                        });
                     });
                 }
             } catch (error) {
                 console.error('Error loading data pembanding:', error);
-                // Fallback to default values
-                INDICATORS.forEach(ind => {
-                    ind.subs.forEach(sub => {
-                        dataPembanding[sub.id] = sub.pembanding;
-                    });
-                });
+                // Fallback already initialized in defaults
             }
         }
 
@@ -712,19 +534,19 @@
             try {
                 const updates = [];
                 INDICATORS.forEach(ind => {
-                    ind.subs.forEach(sub => {
-                        const input = document.getElementById(`admin_${sub.id}`);
+                    if (ind.type === 'ratio') {
+                        const input = document.getElementById(`admin_${ind.no}`);
                         if (input) {
-                            const newValue = parseFloat(input.value) || sub.pembanding;
-                            dataPembanding[sub.id] = newValue;
+                            const newValue = parseFloat(input.value) || ind.pembanding;
+                            dataPembanding[ind.no] = newValue;
                             updates.push({
-                                subindikator_kode: sub.id,
-                                subindikator_nama: sub.nama,
+                                subindikator_kode: ind.no.toString(),
+                                subindikator_nama: ind.nama,
                                 nilai_max: newValue,
-                                rumus: sub.type
+                                rumus: ind.type
                             });
                         }
-                    });
+                    }
                 });
                 
                 // Upsert to database
@@ -754,22 +576,22 @@
             
             try {
                 INDICATORS.forEach(ind => {
-                    ind.subs.forEach(sub => {
-                        dataPembanding[sub.id] = sub.pembanding;
-                    });
+                    if (ind.type === 'ratio') {
+                        dataPembanding[ind.no] = ind.pembanding;
+                    }
                 });
                 
                 // Save to database
                 const updates = [];
                 INDICATORS.forEach(ind => {
-                    ind.subs.forEach(sub => {
+                    if (ind.type === 'ratio') {
                         updates.push({
-                            subindikator_kode: sub.id,
-                            subindikator_nama: sub.nama,
-                            nilai_max: sub.pembanding,
-                            rumus: sub.type
+                            subindikator_kode: ind.no.toString(),
+                            subindikator_nama: ind.nama,
+                            nilai_max: ind.pembanding,
+                            rumus: ind.type
                         });
-                    });
+                    }
                 });
                 
                 const { error } = await supabaseClient
@@ -876,30 +698,28 @@
             const calculations = {};
             
             INDICATORS.forEach(ind => {
-                ind.subs.forEach(sub => {
-                    const inputValue = inputs[sub.id];
-                    const pembanding = dataPembanding[sub.id] || sub.pembanding;
-                    
-                    let rasio = 0;
-                    if (sub.type === 'ratio') {
-                        rasio = pembanding > 0 ? (inputValue / pembanding) : 0;
-                    } else {
-                        rasio = inputValue;
-                    }
-                    
-                    const skor = inputValue === 0 ? 0 : sub.skorFunc(rasio);
-                    const nilai = skor * sub.bobot;
-                    totalNilai += nilai;
-                    
-                    calculations[sub.id] = {
-                        input: inputValue,
-                        pembanding: pembanding,
-                        rasio: rasio,
-                        skor: skor,
-                        bobot: sub.bobot,
-                        nilai: nilai
-                    };
-                });
+                const inputValue = inputs[ind.no];
+                const pembanding = dataPembanding[ind.no] || ind.pembanding;
+                
+                let rasio = 0;
+                if (ind.type === 'ratio') {
+                    rasio = pembanding > 0 ? (inputValue / pembanding) : 0;
+                } else {
+                    rasio = inputValue;
+                }
+                
+                const skor = ind.skorFunc(rasio);
+                const nilai = skor * ind.bobot;
+                totalNilai += nilai;
+                
+                calculations[ind.no] = {
+                    input: inputValue,
+                    pembanding: pembanding,
+                    rasio: rasio,
+                    skor: skor,
+                    bobot: ind.bobot,
+                    nilai: nilai
+                };
             });
             
             const status = totalNilai >= BATAS_LAYAK ? 'LAYAK' : 'TIDAK LAYAK';
@@ -992,57 +812,38 @@
             
             INDICATORS.forEach(ind => {
                 html += `
-                    <div class="indicator-group bg-gray-50 rounded-lg p-4 pl-6">
-                        <h4 class="font-semibold text-gray-800 mb-3">
-                            <span class="bg-blue-600 text-white text-sm px-2 py-1 rounded mr-2">${ind.no}</span>
-                            ${ind.nama}
-                        </h4>
-                        <div class="space-y-3">
-                `;
-                
-                ind.subs.forEach(sub => {
-                    html += `
-                        <div class="bg-white p-3 rounded-lg shadow-sm">
-                            <div class="flex flex-col lg:flex-row lg:items-center gap-3">
-                                <div class="flex-1">
-                                    <label class="text-sm text-gray-600">
-                                        <span class="font-medium text-blue-600">${sub.id}</span> - ${sub.nama}
-                                    </label>
+                    <div class="indicator-group bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                        <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+                            <div class="flex-1">
+                                <label class="text-sm font-semibold text-gray-800">
+                                    <span class="bg-blue-600 text-white text-xs px-2 py-0.5 rounded mr-1">${ind.no}</span>
+                                    ${ind.nama}
+                                </label>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-500 whitespace-nowrap">Input:</span>
+                                    <input type="number" step="any" id="input_${ind.no}" 
+                                        onchange="calculateForm()" oninput="calculateForm()"
+                                        class="input-field w-32 px-3 py-2 border border-gray-300 rounded-lg text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 </div>
-                                <div class="flex flex-wrap items-center gap-3">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs text-gray-500 whitespace-nowrap">Data Input:</span>
-                                        <input type="number" step="any" id="input_${sub.id}" 
-                                            onchange="calculateForm()" oninput="calculateForm()"
-                                            class="input-field w-28 px-3 py-2 border border-gray-300 rounded-lg text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs text-gray-500 whitespace-nowrap">Pembanding:</span>
-                                        <span id="pembanding_${sub.id}" class="text-sm font-medium text-gray-700 w-24 text-right">${formatNumber(dataPembanding[sub.id] || sub.pembanding)}</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs text-gray-500">Rasio:</span>
-                                        <span id="rasio_${sub.id}" class="text-sm font-medium text-gray-700 w-16 text-right">-</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs text-gray-500">Skor:</span>
-                                        <span id="skor_${sub.id}" class="score-badge bg-gray-200 text-gray-700 px-2 py-1 rounded font-bold">0</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs text-gray-500">Bobot:</span>
-                                        <span class="text-sm font-medium text-gray-700">${sub.bobot}</span>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-xs text-gray-500">Nilai:</span>
-                                        <span id="nilai_${sub.id}" class="score-badge bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold">0</span>
-                                    </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-500">Rasio:</span>
+                                    <span id="rasio_${ind.no}" class="text-sm font-medium text-gray-700 w-16 text-right">-</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-500">Skor:</span>
+                                    <span id="skor_${ind.no}" class="score-badge bg-gray-200 text-gray-700 px-2 py-1 rounded font-bold">0</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-500">Bobot:</span>
+                                    <span class="text-sm font-medium text-gray-700">${ind.bobot}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-500">Nilai:</span>
+                                    <span id="nilai_${ind.no}" class="score-badge bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold">0</span>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                });
-                
-                html += `
                         </div>
                     </div>
                 `;
@@ -1056,33 +857,18 @@
             let html = '';
             
             INDICATORS.forEach(ind => {
-                html += `
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-800 mb-3">
-                            <span class="bg-blue-600 text-white text-sm px-2 py-1 rounded mr-2">${ind.no}</span>
-                            ${ind.nama}
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                `;
-                
-                ind.subs.forEach(sub => {
+                if (ind.type === 'ratio') {
                     html += `
-                        <div class="bg-white p-3 rounded-lg shadow-sm">
-                            <label class="block text-sm text-gray-600 mb-1">
-                                <span class="font-medium text-blue-600">${sub.id}</span>
+                        <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <span class="text-blue-600">${ind.no}</span> ${ind.nama}
                             </label>
-                            <p class="text-xs text-gray-500 mb-2">${sub.nama}</p>
-                            <input type="number" step="any" id="admin_${sub.id}" 
-                                value="${dataPembanding[sub.id] || sub.pembanding}"
+                            <input type="number" step="any" id="admin_${ind.no}" 
+                                value="${dataPembanding[ind.no] || ind.pembanding}"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-right focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                     `;
-                });
-                
-                html += `
-                        </div>
-                    </div>
-                `;
+                }
             });
             
             container.innerHTML = html;
@@ -1095,27 +881,15 @@
             
             const data = allKecamatanData[kecamatan];
             
-            // Update pembanding displays
-            INDICATORS.forEach(ind => {
-                ind.subs.forEach(sub => {
-                    const pembandingEl = document.getElementById(`pembanding_${sub.id}`);
-                    if (pembandingEl) {
-                        pembandingEl.textContent = formatNumber(dataPembanding[sub.id] || sub.pembanding);
-                    }
-                });
-            });
-            
             if (data && data.inputs) {
                 // Load existing data
                 INDICATORS.forEach(ind => {
-                    ind.subs.forEach(sub => {
-                        const input = document.getElementById(`input_${sub.id}`);
-                        if (input && data.inputs[sub.id] !== undefined) {
-                            input.value = data.inputs[sub.id];
-                        } else if (input) {
-                            input.value = '';
-                        }
-                    });
+                    const input = document.getElementById(`input_${ind.no}`);
+                    if (input && data.inputs[ind.no] !== undefined) {
+                        input.value = data.inputs[ind.no];
+                    } else if (input) {
+                        input.value = '';
+                    }
                 });
                 calculateForm();
             } else {
@@ -1129,38 +903,36 @@
             let totalBobot = 0;
             
             INDICATORS.forEach(ind => {
-                ind.subs.forEach(sub => {
-                    const input = document.getElementById(`input_${sub.id}`);
-                    const inputValue = input ? parseFloat(input.value) || 0 : 0;
-                    const pembanding = dataPembanding[sub.id] || sub.pembanding;
-                    
-                    let rasio = 0;
-                    if (sub.type === 'ratio') {
-                        rasio = pembanding > 0 ? (inputValue / pembanding) : 0;
-                    } else {
-                        rasio = inputValue;
-                    }
-                    
-                    const skor = inputValue === 0 ? 0 : sub.skorFunc(rasio);
-                    const nilai = skor * sub.bobot;
-                    totalNilai += nilai;
-                    totalBobot += sub.bobot;
-                    
-                    // Update display
-                    const rasioEl = document.getElementById(`rasio_${sub.id}`);
-                    const skorEl = document.getElementById(`skor_${sub.id}`);
-                    const nilaiEl = document.getElementById(`nilai_${sub.id}`);
-                    
-                    if (rasioEl) rasioEl.textContent = sub.type === 'ratio' ? rasio.toFixed(3) : inputValue || '-';
-                    if (skorEl) {
-                        skorEl.textContent = skor;
-                        skorEl.className = `score-badge px-2 py-1 rounded font-bold ${getSkorColor(skor)}`;
-                    }
-                    if (nilaiEl) {
-                        nilaiEl.textContent = nilai;
-                        nilaiEl.className = `score-badge px-2 py-1 rounded font-bold ${getNilaiColor(nilai, sub.bobot)}`;
-                    }
-                });
+                const input = document.getElementById(`input_${ind.no}`);
+                const inputValue = input ? parseFloat(input.value) || 0 : 0;
+                const pembanding = dataPembanding[ind.no] || ind.pembanding;
+                
+                let rasio = 0;
+                if (ind.type === 'ratio') {
+                    rasio = pembanding > 0 ? (inputValue / pembanding) : 0;
+                } else {
+                    rasio = inputValue;
+                }
+                
+                const skor = ind.skorFunc(rasio);
+                const nilai = skor * ind.bobot;
+                totalNilai += nilai;
+                totalBobot += ind.bobot;
+                
+                // Update display
+                const rasioEl = document.getElementById(`rasio_${ind.no}`);
+                const skorEl = document.getElementById(`skor_${ind.no}`);
+                const nilaiEl = document.getElementById(`nilai_${ind.no}`);
+                
+                if (rasioEl) rasioEl.textContent = ind.type === 'ratio' ? rasio.toFixed(3) : inputValue || '-';
+                if (skorEl) {
+                    skorEl.textContent = skor;
+                    skorEl.className = `score-badge px-2 py-1 rounded font-bold ${getSkorColor(skor)}`;
+                }
+                if (nilaiEl) {
+                    nilaiEl.textContent = nilai;
+                    nilaiEl.className = `score-badge px-2 py-1 rounded font-bold ${getNilaiColor(nilai, ind.bobot)}`;
+                }
             });
             
             // Update totals
@@ -1199,12 +971,12 @@
             const inputs = {};
             
             INDICATORS.forEach(ind => {
-                ind.subs.forEach(sub => {
-                    const input = document.getElementById(`input_${sub.id}`);
-                    if (input) {
-                        inputs[sub.id] = parseFloat(input.value) || 0;
-                    }
-                });
+                const input = document.getElementById(`input_${ind.no}`);
+                if (input) {
+                    // Handle comma as decimal separator
+                    const cleanedValue = input.value.replace(',', '.');
+                    inputs[ind.no] = parseFloat(cleanedValue) || 0;
+                }
             });
             
             try {
@@ -1230,18 +1002,16 @@
             const kecamatan = document.getElementById('selectKecamatan').value;
             
             INDICATORS.forEach(ind => {
-                ind.subs.forEach(sub => {
-                    const input = document.getElementById(`input_${sub.id}`);
-                    if (input) input.value = '';
-                    
-                    const rasioEl = document.getElementById(`rasio_${sub.id}`);
-                    const skorEl = document.getElementById(`skor_${sub.id}`);
-                    const nilaiEl = document.getElementById(`nilai_${sub.id}`);
-                    
-                    if (rasioEl) rasioEl.textContent = '-';
-                    if (skorEl) { skorEl.textContent = '0'; skorEl.className = 'score-badge bg-gray-200 text-gray-700 px-2 py-1 rounded font-bold'; }
-                    if (nilaiEl) { nilaiEl.textContent = '0'; nilaiEl.className = 'score-badge bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold'; }
-                });
+                const input = document.getElementById(`input_${ind.no}`);
+                if (input) input.value = '';
+                
+                const rasioEl = document.getElementById(`rasio_${ind.no}`);
+                const skorEl = document.getElementById(`skor_${ind.no}`);
+                const nilaiEl = document.getElementById(`nilai_${ind.no}`);
+                
+                if (rasioEl) rasioEl.textContent = '-';
+                if (skorEl) { skorEl.textContent = '0'; skorEl.className = 'score-badge bg-gray-200 text-gray-700 px-2 py-1 rounded font-bold'; }
+                if (nilaiEl) { nilaiEl.textContent = '0'; nilaiEl.className = 'score-badge bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold'; }
             });
             
             document.getElementById('totalNilai').textContent = '0';
@@ -1492,20 +1262,18 @@
                     
                     let rowNum = 1;
                     INDICATORS.forEach(ind => {
-                        ind.subs.forEach(sub => {
-                            const calc = data.calculations[sub.id] || {};
-                            detailData.push([
-                                sub.id,
-                                sub.nama,
-                                calc.input || 0,
-                                calc.pembanding || dataPembanding[sub.id] || sub.pembanding,
-                                calc.rasio ? calc.rasio.toFixed(4) : 0,
-                                calc.skor || 0,
-                                sub.bobot,
-                                calc.nilai || 0
-                            ]);
-                            rowNum++;
-                        });
+                        const calc = data.calculations[ind.no] || {};
+                        detailData.push([
+                            ind.no,
+                            ind.nama,
+                            calc.input || 0,
+                            calc.pembanding || dataPembanding[ind.no] || ind.pembanding || '-',
+                            calc.rasio ? calc.rasio.toFixed(4) : 0,
+                            calc.skor || 0,
+                            ind.bobot,
+                            calc.nilai || 0
+                        ]);
+                        rowNum++;
                     });
                     
                     detailData.push(['', '', '', '', '', '', 'TOTAL', data.totalNilai]);
@@ -1521,14 +1289,12 @@
                 ['Subindikator', 'Nama', 'Nilai Pembanding', 'Bobot']
             ];
             INDICATORS.forEach(ind => {
-                ind.subs.forEach(sub => {
-                    pembandingData.push([
-                        sub.id,
-                        sub.nama,
-                        dataPembanding[sub.id] || sub.pembanding,
-                        sub.bobot
-                    ]);
-                });
+                pembandingData.push([
+                    ind.no,
+                    ind.nama,
+                    dataPembanding[ind.no] || ind.pembanding || '-',
+                    ind.bobot
+                ]);
             });
             const wsPembanding = XLSX.utils.aoa_to_sheet(pembandingData);
             XLSX.utils.book_append_sheet(workbook, wsPembanding, 'Data Pembanding');
@@ -1558,8 +1324,11 @@
                                 
                                 const inputs = {};
                                 jsonData.slice(1).forEach(row => {
-                                    if (row[0] && row[2] !== undefined) {
-                                        inputs[row[0]] = parseFloat(row[2]) || 0;
+                                    if (row[0] !== undefined && row[2] !== undefined) {
+                                        const indNo = parseInt(row[0]);
+                                        if (!isNaN(indNo)) {
+                                            inputs[indNo] = parseFloat(row[2]) || 0;
+                                        }
                                     }
                                 });
                                 
