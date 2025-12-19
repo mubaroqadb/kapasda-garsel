@@ -262,6 +262,9 @@
             <div class="bg-white rounded-xl shadow-md p-5">
                 <h3 class="font-semibold text-gray-700 mb-4"><i class="fas fa-trash-alt mr-2"></i>Kelola Data</h3>
                 <div class="flex gap-2">
+                    <button onclick="recalibrateAllData()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> Rekalibrasi Semua Data
+                    </button>
                     <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
                         <i class="fas fa-trash"></i> Hapus Semua Data Kecamatan
                     </button>
@@ -964,6 +967,47 @@
             if (ratio >= 0.6) return 'bg-yellow-100 text-yellow-700';
             if (ratio >= 0.4) return 'bg-orange-100 text-orange-700';
             return 'bg-red-100 text-red-700';
+        }
+
+        async function recalibrateAllData() {
+            if (userRole !== 'admin') {
+                showToast('Hanya admin yang dapat melakukan rekalibrasi!', 'error');
+                return;
+            }
+            
+            if (!confirm('Rekalibrasi akan menghitung ulang semua nilai berdasarkan formula terbaru di index.html. Lanjutkan?')) return;
+            
+            try {
+                showToast('Sedang melakukan rekalibrasi...', 'success');
+                
+                // Get all existing penilaian records
+                const { data: allPenilaian, error: fetchError } = await supabaseClient
+                    .from('penilaian')
+                    .select('*, kecamatan(nama)')
+                    .eq('status', 'final');
+                
+                if (fetchError) throw fetchError;
+                
+                let successCount = 0;
+                
+                for (const record of allPenilaian) {
+                    const kecamatanName = record.kecamatan ? record.kecamatan.nama : null;
+                    if (!kecamatanName || !record.data || !record.data.inputs) continue;
+                    
+                    // Perform recalculation using current logic
+                    const result = await calculateAndSave(kecamatanName, record.data.inputs, false);
+                    if (result) successCount++;
+                }
+                
+                await loadAllKecamatanData();
+                updateDashboard();
+                updateRekapTable();
+                
+                showToast(`Berhasil merekalibrasi ${successCount} data kecamatan!`);
+            } catch (error) {
+                console.error('Error during recalibration:', error);
+                showToast('Gagal melakukan rekalibrasi!', 'error');
+            }
         }
 
         async function saveData() {
