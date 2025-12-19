@@ -309,7 +309,7 @@
         // ==================== AUTH & PROFILE ====================
         async function checkAuth() {
             try {
-                const { data: { session }, error } = await supabaseClientClient.auth.getSession();
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
                 
                 if (error) throw error;
                 
@@ -387,7 +387,7 @@
             if (!confirm('Keluar dari aplikasi?')) return;
             
             try {
-                await supabaseClientClient.auth.signOut();
+                await supabaseClient.auth.signOut();
                 window.location.href = 'login.html';
             } catch (error) {
                 console.error('Logout error:', error);
@@ -864,7 +864,7 @@
             // 1. Check Authentication
             if (!currentUser) {
                 // Try to re-check auth silently
-                const { data: { session } } = await supabaseClientClient.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
                     currentUser = session.user;
                 } else {
