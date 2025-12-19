@@ -994,9 +994,43 @@
                     const kecamatanName = record.kecamatan ? record.kecamatan.nama : null;
                     if (!kecamatanName || !record.data || !record.data.inputs) continue;
                     
+                    // Remap old keys to new ones if necessary
+                    const oldInputs = record.data.inputs;
+                    const inputs = {};
+                    
+                    // Define old to new mapping
+                    const mapping = {
+                        "1.1": 1, "1.2": 2, "2.1": 3, "2.2": 4, "3.1": 5, "3.2": 6,
+                        "4.1": 7, "4.2": 8, "4.3": 9, "5.1": 10, "6.1": 11, "7.1": 12,
+                        "8.1": 14, "9.1": 15, "10.1": 16, "11.1": 17, "11.2": 18, "11.3": 19, "11.4": 20,
+                        "12.1": 21, "12.2": 22, "12.3": 23, "12.4": 24, "12.5": 25, "12.6": 26,
+                        "13.1": 27, "14.1": 28, "15.1": 29, "16.1": 30, "16.2": 31, "16.3": 32,
+                        "17.1": 33, "17.2": 34, "18.1": 35, "19.1": 36, "19.2": 37, "20.1": 38
+                    };
+                    
+                    for (const [oldKey, newKey] of Object.entries(mapping)) {
+                        if (oldInputs[oldKey] !== undefined) {
+                            inputs[newKey] = oldInputs[oldKey];
+                        }
+                    }
+                    
+                    // Also copy any already numerical keys
+                    for (const [key, val] of Object.entries(oldInputs)) {
+                        if (!isNaN(key)) {
+                            inputs[parseInt(key)] = val;
+                        }
+                    }
+                    
+                    // Handle missing new indices (like 13)
+                    if (inputs[13] === undefined) inputs[13] = oldInputs["13"] || 0;
+
                     // Perform recalculation using current logic
-                    const result = await calculateAndSave(kecamatanName, record.data.inputs, false);
-                    if (result) successCount++;
+                    try {
+                        await calculateAndSave(kecamatanName, inputs);
+                        successCount++;
+                    } catch (e) {
+                        console.error(`Gagal rekalibrasi ${kecamatanName}:`, e);
+                    }
                 }
                 
                 await loadAllKecamatanData();
