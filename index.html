@@ -1287,7 +1287,7 @@
             }
 
             const data = allKecamatanData[kecamatan];
-            if (!data || !data.calculations) return;
+            if (!data) return;
 
             // Prepare data for spider chart
             const labels = [];
@@ -1295,8 +1295,49 @@
             
             INDICATORS.forEach(ind => {
                 labels.push(`${ind.no}. ${ind.nama.substring(0, 20)}...`);
-                const calc = data.calculations[ind.no];
-                scores.push(calc ? calc.skor : 0);
+                
+                let skor = 0;
+                
+                // Try to get from calculations first
+                if (data.calculations && data.calculations[ind.no]) {
+                    skor = data.calculations[ind.no].skor;
+                } else if (data.inputs) {
+                    // Calculate from inputs if calculations not available
+                    // Remap legacy keys if needed
+                    const LEGACY_MAP = {
+                        "1.1": 1, "1.2": 2, "2.1": 3, "2.2": 4, "3.1": 5, "3.2": 6,
+                        "4.1": 7, "4.2": 8, "4.3": 9, "5.1": 10, "6.1": 11, "7.1": 12,
+                        "8.1": 14, "9.1": 15, "10.1": 16, "11.1": 17, "11.2": 18, "11.3": 19, "11.4": 20,
+                        "12.1": 21, "12.2": 22, "12.3": 23, "12.4": 24, "12.5": 25, "12.6": 26,
+                        "13.1": 27, "14.1": 28, "15.1": 29, "16.1": 30, "16.2": 31, "16.3": 32,
+                        "17.1": 33, "17.2": 34, "18.1": 35, "19.1": 36, "19.2": 37, "20.1": 38
+                    };
+                    
+                    let inputValue = data.inputs[ind.no];
+                    
+                    // Try legacy key if not found
+                    if (inputValue === undefined) {
+                        const legacyKey = Object.keys(LEGACY_MAP).find(k => LEGACY_MAP[k] === ind.no);
+                        if (legacyKey) {
+                            inputValue = data.inputs[legacyKey];
+                        }
+                    }
+                    
+                    if (inputValue !== undefined) {
+                        const pembanding = dataPembanding[ind.no] || ind.pembanding;
+                        let rasio = 0;
+                        
+                        if (ind.type === 'ratio') {
+                            rasio = pembanding > 0 ? (inputValue / pembanding) : 0;
+                        } else {
+                            rasio = inputValue;
+                        }
+                        
+                        skor = ind.skorFunc(rasio);
+                    }
+                }
+                
+                scores.push(skor);
             });
 
             const ctx = document.getElementById('chartSpider').getContext('2d');
