@@ -914,17 +914,15 @@
                 const hasLegacyKeys = Object.keys(data.inputs).some(key => key.includes('.'));
                 
                 if (hasLegacyKeys) {
-                    // Remap legacy keys
+                    // Remap legacy keys - ONLY use the mapping, ignore numeric keys
                     for (const [oldKey, newKey] of Object.entries(LEGACY_MAP)) {
                         if (data.inputs[oldKey] !== undefined) {
                             remappedInputs[newKey] = data.inputs[oldKey];
                         }
                     }
-                    // Also copy any numeric keys
-                    for (const [key, val] of Object.entries(data.inputs)) {
-                        if (!isNaN(key)) {
-                            remappedInputs[parseInt(key)] = val;
-                        }
+                    // Handle special case for indicator 13 (DPT) which might be stored as "13"
+                    if (data.inputs["13"] !== undefined) {
+                        remappedInputs[13] = data.inputs["13"];
                     }
                 } else {
                     // Already in new format
